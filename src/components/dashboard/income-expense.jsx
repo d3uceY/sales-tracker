@@ -19,31 +19,31 @@ const monthlyData = [
 
 export function IncomeExpense() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
       {/* Today's Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Today</CardTitle>
+          <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">Today</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Income</span>
             </div>
-            <span className="text-lg font-bold text-green-600">$12,450</span>
+            <span className="text-base lg:text-lg font-bold text-green-600">$12,450</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <TrendingDown className="h-4 w-4 text-red-600" />
+              <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Expense</span>
             </div>
-            <span className="text-lg font-bold text-red-600">$8,230</span>
+            <span className="text-base lg:text-lg font-bold text-red-600">$8,230</span>
           </div>
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-900">Net Profit</span>
-              <span className="text-lg font-bold text-blue-600">$4,220</span>
+              <span className="text-base lg:text-lg font-bold text-blue-600">$4,220</span>
             </div>
           </div>
         </CardContent>
@@ -52,27 +52,27 @@ export function IncomeExpense() {
       {/* This Month's Summary */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">This Month</CardTitle>
+          <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">This Month</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Income</span>
             </div>
-            <span className="text-lg font-bold text-green-600">$125,000</span>
+            <span className="text-base lg:text-lg font-bold text-green-600">$125,000</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <TrendingDown className="h-4 w-4 text-red-600" />
+              <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Expense</span>
             </div>
-            <span className="text-lg font-bold text-red-600">$85,000</span>
+            <span className="text-base lg:text-lg font-bold text-red-600">$85,000</span>
           </div>
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-900">Net Profit</span>
-              <span className="text-lg font-bold text-blue-600">$40,000</span>
+              <span className="text-base lg:text-lg font-bold text-blue-600">$40,000</span>
             </div>
           </div>
         </CardContent>
@@ -81,10 +81,10 @@ export function IncomeExpense() {
       {/* Monthly Trend Chart */}
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold text-gray-900">Monthly Trend</CardTitle>
+          <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">Monthly Trend</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-48">
+          <div className="h-48 lg:h-48">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlyData.slice(-6)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />

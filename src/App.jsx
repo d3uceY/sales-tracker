@@ -4,6 +4,12 @@ import { DashboardLayout } from "./components/layout/dashboard-layout"
 import Dashboard from "./pages/dashboard/dashboard"
 import Home from "./pages/Home/Home"
 import TransactionHistory from "./pages/transaction-history/TransactionHistory"
+import Roles from "./pages/roles/roles"
+import Users from "./pages/users/users"
+import VendorTransactions from "./pages/vendors/vendors"
+import CustomerTransactions from "./pages/customers/customers"
+import Settings from "./pages/settings/settings"
+import Reports from "./pages/reports/reports"
 
 function App() {
   return (
@@ -14,59 +20,17 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/transactions" element={<Home />} />
             <Route path="/transaction-history" element={<TransactionHistory />} />
-            <Route
-              path="/roles"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Roles Management</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
-                </div>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">User Management</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
-                </div>
-              }
-            />
-            <Route
-              path="/vendors"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Vendor Management</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
-                </div>
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Customer Management</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
-                </div>
-              }
-            />
+            <Route path="/roles" element={<Roles />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/vendors" element={<VendorTransactions />} />
+            <Route path="/customers" element={<CustomerTransactions />} />
             <Route
               path="/reports"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Reports</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
-                </div>
-              }
+              element={ <Reports />}
             />
             <Route
               path="/settings"
-              element={
-                <div className="p-6">
-                  <h1 className="text-2xl font-bold">Settings</h1>
-                  <p className="text-gray-600 mt-2">Coming soon...</p>
-                </div>
-              }
+              element={<Settings />}
             />
           </Routes>
         </DashboardLayout>

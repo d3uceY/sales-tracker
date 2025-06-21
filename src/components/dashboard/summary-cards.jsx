@@ -45,17 +45,17 @@ const colorClasses = {
 
 export function SummaryCards() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
       {summaryData.map((item, index) => (
         <Card key={index} className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">{item.title}</CardTitle>
-            <div className={`p-2 rounded-lg ${colorClasses[item.color]}`}>
+            <CardTitle className="text-sm font-medium text-gray-600 truncate pr-2">{item.title}</CardTitle>
+            <div className={`p-2 rounded-lg ${colorClasses[item.color]} flex-shrink-0`}>
               <item.icon className="h-4 w-4" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{item.value}</div>
+            <div className="text-xl lg:text-2xl font-bold text-gray-900">{item.value}</div>
             <p className={`text-xs ${item.changeType === "positive" ? "text-green-600" : "text-red-600"}`}>
               {item.change} from last month
             </p>
