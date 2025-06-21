@@ -1,8 +1,26 @@
 import { Bell, Menu, Search, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useState } from "react"
+
+const exchangeRates = [
+  { currency: "USD/NGN", rate: "₦1,650" },
+  { currency: "GBP/NGN", rate: "₦2,050" },
+  { currency: "EUR/NGN", rate: "₦1,750" },
+]
 
 export function TopBar({ onMenuClick }) {
+  const [selectedRate, setSelectedRate] = useState(exchangeRates[0])
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -23,10 +41,37 @@ export function TopBar({ onMenuClick }) {
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
-          {/* Exchange Rate Display */}
-          <div className="hidden md:flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
-            <span className="text-sm font-medium text-green-700">USD/NGN:</span>
-            <span className="text-sm font-bold text-green-800">₦1,650</span>
+          {/* Exchange Rate Dropdown */}
+          <div className="hidden md:flex">
+            <Select
+              defaultValue={selectedRate.currency}
+              onValueChange={(value) => {
+                const rate = exchangeRates.find((r) => r.currency === value)
+                if (rate) setSelectedRate(rate)
+              }}
+            >
+              <SelectTrigger className="bg-green-50 border-green-200 text-green-800 font-bold">
+                <SelectValue>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{selectedRate.currency}:</span>
+                    <span>{selectedRate.rate}</span>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Exchange Rates</SelectLabel>
+                  {exchangeRates.map((rate) => (
+                    <SelectItem key={rate.currency} value={rate.currency}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{rate.currency}</span>
+                        <span className="font-bold ml-4">{rate.rate}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Notifications */}
