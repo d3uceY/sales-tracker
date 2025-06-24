@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X } from "lucide-react"
+import {
+  getCustomerPreviousBalance,
+  calculateNewBalance,
+  formatBalanceStatus,
+} from "../../helpers/balance/balance-calculator"
 
 const customerNames = [
   "Adebayo Electronics",
@@ -32,8 +37,16 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     otherExpensesUSD: "0",
     otherExpensesNGN: "0",
     paymentStatus: "unpaid",
+    amountPaid: "",
   })
   const [errors, setErrors] = useState({})
+
+  const [previousBalance, setPreviousBalance] = useState(0)
+  const [balanceInfo, setBalanceInfo] = useState({ status: "paid", color: "green", text: "No Outstanding Balance" })
+
+  const amountUSD = (Number.parseFloat(formData.amountNGN) || 0) / (Number.parseFloat(formData.exchangeRate) || 1)
+  const totalNGN = (Number.parseFloat(formData.amountNGN) || 0) + (Number.parseFloat(formData.otherExpensesNGN) || 0)
+  const totalUSD = amountUSD + (Number.parseFloat(formData.otherExpensesUSD) || 0)
 
   useEffect(() => {
     if (transaction) {
@@ -49,6 +62,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         otherExpensesUSD: transaction.otherExpensesUSD.toString(),
         otherExpensesNGN: transaction.otherExpensesNGN.toString(),
         paymentStatus: transaction.paymentStatus,
+        amountPaid: transaction.amountPaid ? transaction.amountPaid.toString() : "",
       })
     } else {
       setFormData({
@@ -63,15 +77,32 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         otherExpensesUSD: "0",
         otherExpensesNGN: "0",
         paymentStatus: "unpaid",
+        amountPaid: "",
       })
     }
     setErrors({})
   }, [transaction, isOpen])
 
-  // Auto-calculate USD amounts
-  const amountUSD = (Number.parseFloat(formData.amountNGN) || 0) / (Number.parseFloat(formData.exchangeRate) || 1)
-  const totalNGN = (Number.parseFloat(formData.amountNGN) || 0) + (Number.parseFloat(formData.otherExpensesNGN) || 0)
-  const totalUSD = amountUSD + (Number.parseFloat(formData.otherExpensesUSD) || 0)
+  useEffect(() => {
+    if (formData.customerName && formData.customerName !== "Other") {
+      // In a real app, you'd fetch this from your transactions context or API
+      const prevBalance = getCustomerPreviousBalance(formData.customerName, [])
+      setPreviousBalance(prevBalance)
+      setBalanceInfo(formatBalanceStatus(prevBalance))
+    } else {
+      setPreviousBalance(0)
+      setBalanceInfo({ status: "paid", color: "green", text: "No Outstanding Balance" })
+    }
+  }, [formData.customerName])
+
+  useEffect(() => {
+    // Recalculate balance info when amounts change
+    if (formData.amountNGN && formData.exchangeRate) {
+      const currentTransactionTotal = totalUSD
+      const newBalance = calculateNewBalance(previousBalance, currentTransactionTotal, currentTransactionTotal)
+      setBalanceInfo(formatBalanceStatus(newBalance))
+    }
+  }, [formData.amountNGN, formData.exchangeRate, previousBalance])
 
   const validateForm = () => {
     const newErrors = {}
@@ -99,6 +130,9 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
       const finalCustomerName = formData.customerName === "Other" ? formData.customCustomerName : formData.customerName
       const finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
 
+      const amountPaidValue = Number.parseFloat(formData.amountPaid) || totalUSD
+      const newOutstandingBalance = calculateNewBalance(previousBalance, totalUSD, amountPaidValue)
+
       const transactionData = {
         customerName: finalCustomerName,
         itemPurchased: finalItemName,
@@ -109,9 +143,12 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         amountUSD: amountUSD,
         otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
         otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
-        paymentStatus: formData.paymentStatus,
+        paymentStatus: newOutstandingBalance > 0 ? "unpaid" : "paid",
         totalNGN: totalNGN,
         totalUSD: totalUSD,
+        amountPaid: amountPaidValue,
+        previousBalance: previousBalance,
+        outstandingBalance: newOutstandingBalance,
       }
       onSave(transactionData)
     }
@@ -137,6 +174,36 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
             </Button>
           </div>
         </DialogHeader>
+
+        {formData.customerName && formData.customerName !== "Other" && (
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">Customer Balance Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-blue-700">Previous Balance:</span>
+                <p className="font-mono font-medium text-blue-900">${previousBalance.toFixed(2)}</p>
+              </div>
+              <div>
+                <span className="text-blue-700">Current Transaction:</span>
+                <p className="font-mono font-medium text-blue-900">${totalUSD.toFixed(2)}</p>
+              </div>
+              <div>
+                <span className="text-blue-700">Status:</span>
+                <p
+                  className={`font-medium ${
+                    balanceInfo.color === "green"
+                      ? "text-green-600"
+                      : balanceInfo.color === "red"
+                        ? "text-red-600"
+                        : "text-blue-600"
+                  }`}
+                >
+                  {balanceInfo.text}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -254,6 +321,22 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 className={`mt-1 ${errors.exchangeRate ? "border-red-500" : ""}`}
               />
               {errors.exchangeRate && <p className="mt-1 text-sm text-red-600">{errors.exchangeRate}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="amountPaid" className="text-sm font-medium text-gray-700">
+                Amount Paid (USD)
+              </Label>
+              <Input
+                id="amountPaid"
+                type="number"
+                step="0.01"
+                value={formData.amountPaid || totalUSD.toFixed(2)}
+                onChange={(e) => handleChange("amountPaid", e.target.value)}
+                placeholder="0.00"
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">Leave blank to mark as fully paid</p>
             </div>
 
             <div>

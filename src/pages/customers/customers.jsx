@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { CustomerTransactionModal } from "../../components/transactions/customer-transaction-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
-import { Plus, Search, Edit, Trash2, Users, TrendingUp, DollarSign } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Users, TrendingUp, DollarSign, FileText } from "lucide-react"
 import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
 import { formatDate } from "../../helpers/date/formatDate"
+import { downloadInvoicePDF } from "../../helpers/invoice/invoice-generator"
 
 // Mock data for customer transactions
 const initialCustomerTransactions = [
@@ -154,6 +155,17 @@ export default function CustomerTransactions() {
     setTransactions(transactions.filter((t) => t.id !== selectedTransaction.id))
     setIsDeleteModalOpen(false)
     setSelectedTransaction(null)
+  }
+
+  const handleGenerateInvoice = (transaction) => {
+    const businessInfo = {
+      name: "Your Business Name",
+      address: "123 Business Street, Lagos, Nigeria",
+      phone: "+234 123 456 7890",
+      email: "info@yourbusiness.com",
+    }
+
+    downloadInvoicePDF(transaction, businessInfo)
   }
 
   return (
@@ -366,6 +378,15 @@ export default function CustomerTransactions() {
                           className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleGenerateInvoice(transaction)}
+                          className="h-8 w-8 hover:bg-purple-50 hover:text-purple-600"
+                          title="Generate Invoice"
+                        >
+                          <FileText className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>

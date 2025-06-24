@@ -11,6 +11,7 @@ import { ProfitLossReport } from "../../components/reports/profit-loss-report"
 import { OutstandingPayments } from "../../components/reports/outstanding-payments"
 import { ExchangeRateReport } from "../../components/reports/exchange-rate-report"
 import { FileText, TrendingUp, DollarSign } from "lucide-react"
+import { CustomerBalanceReport } from "../../components/reports/customer-balance-report"
 
 export default function Reports() {
   const [dateFilter, setDateFilter] = useState("this-month")
@@ -137,7 +138,7 @@ export default function Reports() {
         <CardContent>
           <Tabs defaultValue="sales" className="space-y-4 lg:space-y-6">
             <div className="overflow-x-auto">
-              <TabsList className="grid w-full grid-cols-5 min-w-max">
+              <TabsList className="grid w-full grid-cols-6 min-w-max">
                 <TabsTrigger value="sales" className="text-xs lg:text-sm">
                   Sales Report
                 </TabsTrigger>
@@ -152,6 +153,9 @@ export default function Reports() {
                 </TabsTrigger>
                 <TabsTrigger value="exchange-rate" className="text-xs lg:text-sm">
                   Exchange Rate
+                </TabsTrigger>
+                <TabsTrigger value="customer-balance" className="text-xs lg:text-sm">
+                  Customer Balance
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -188,6 +192,14 @@ export default function Reports() {
               <ExchangeRateReport
                 onExportPDF={() => handleExportPDF("Exchange Rate Report")}
                 onExportExcel={() => handleExportExcel("Exchange Rate Report")}
+              />
+            </TabsContent>
+
+            <TabsContent value="customer-balance">
+              <CustomerBalanceReport
+                dateFilter={dateFilter}
+                onExportPDF={() => handleExportPDF("Customer Balance Report")}
+                onExportExcel={() => handleExportExcel("Customer Balance Report")}
               />
             </TabsContent>
           </Tabs>
