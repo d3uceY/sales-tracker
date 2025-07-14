@@ -1,3 +1,5 @@
+"use client"
+
 import { Bell, Menu, Search, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useState } from "react"
+import { useAuth } from "../../context/auth-context"
+import { ChangePasswordModal } from "../auth/change-password-modal"
+import { LogOut, SettingsIcon } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Link } from "react-router-dom"
 
 const exchangeRates = [
   { currency: "USD/NGN", rate: "₦1,650" },
@@ -20,6 +33,11 @@ const exchangeRates = [
 
 export function TopBar({ onMenuClick }) {
   const [selectedRate, setSelectedRate] = useState(exchangeRates[0])
+  const { user, logout } = useAuth()
+
+  const handleLogout = async () => {
+    await logout()
+  }
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
@@ -82,16 +100,38 @@ export function TopBar({ onMenuClick }) {
             </span>
           </Button>
 
-          {/* Profile */}
-          <div className="flex items-center space-x-3">
-            <div className="hidden md:block text-right">
-              <p className="text-sm font-medium text-gray-900">John Adebayo</p>
-              <p className="text-xs text-gray-500">Admin</p>
-            </div>
-            <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-white" />
-            </div>
-          </div>
+          {/* Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center space-x-3 hover:bg-gray-50">
+                <div className="hidden md:block text-right">
+                  <p className="text-sm font-medium text-gray-900">{user?.name || "John Adebayo"}</p>
+                  <p className="text-xs text-gray-500">{user?.role || "Admin"}</p>
+                </div>
+                <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-white shadow-lg">
+              <div className="px-3 py-2">
+                <p className="text-sm font-medium">{user?.name || "John Adebayo"}</p>
+                <p className="text-xs text-gray-500">{user?.email || "john@example.com"}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <ChangePasswordModal>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <SettingsIcon className="mr-2 h-4 w-4" />
+                  Change Password
+                </DropdownMenuItem>
+              </ChangePasswordModal>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

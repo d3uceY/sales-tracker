@@ -10,32 +10,48 @@ import VendorTransactions from "./pages/vendors/vendors"
 import CustomerTransactions from "./pages/customers/customers"
 import Settings from "./pages/settings/settings"
 import Reports from "./pages/reports/reports"
+import { AuthProvider } from "./context/auth-context"
+import LoginPage from "./pages/auth/login"
+import ForgotPasswordPage from "./pages/auth/forgot-password"
+import ResetPasswordPage from "./pages/auth/reset-password"
+import { ProtectedRoute } from "./components/auth/protected-route"
 
 function App() {
   return (
-    <TransactionProvider>
-      <Router>
-        <DashboardLayout>
+    <AuthProvider>
+      <TransactionProvider>
+        <Router>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/transactions" element={<Home />} />
-            <Route path="/transaction-history" element={<TransactionHistory />} />
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/vendors" element={<VendorTransactions />} />
-            <Route path="/customers" element={<CustomerTransactions />} />
+            {/* Public routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+            {/* Protected routes */}
             <Route
-              path="/reports"
-              element={ <Reports />}
-            />
-            <Route
-              path="/settings"
-              element={<Settings />}
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/transactions" element={<Home />} />
+                      <Route path="/transaction-history" element={<TransactionHistory />} />
+                      <Route path="/roles" element={<Roles />} />
+                      <Route path="/users" element={<Users />} />
+                      <Route path="/vendors" element={<VendorTransactions />} />
+                      <Route path="/customers" element={<CustomerTransactions />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/settings" element={<Settings />} />
+                    </Routes>
+                  </DashboardLayout>
+                </ProtectedRoute>
+              }
             />
           </Routes>
-        </DashboardLayout>
-      </Router>
-    </TransactionProvider>
+        </Router>
+      </TransactionProvider>
+    </AuthProvider>
   )
 }
 
