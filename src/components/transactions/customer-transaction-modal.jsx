@@ -134,13 +134,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     if (validateForm()) {
       let finalCustomerName = formData.customerName === "Other" ? formData.customCustomerName : formData.customerName
       let customerId = null;
-      if (formData.customerName === "Other") {
-        // Create the customer first
-        const newCustomer = await addCustomer({ name: formData.customCustomerName })
-        finalCustomerName = newCustomer.name
-        customerId = newCustomer.id
-        await fetchCustomers(); // Refresh list for next time
-      } else {
+      if (formData.customerName !== "Other") {
         // Find the selected customer in the list
         const selected = (customers || []).find(c => c.name === formData.customerName)
         customerId = selected ? selected.id : null
