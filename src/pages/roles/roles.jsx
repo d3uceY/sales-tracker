@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useCallback, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,66 +8,105 @@ import { Badge } from "@/components/ui/badge"
 import { RoleModal } from "../../components/admin/role-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { Plus, Search, Edit, Trash2, Users } from "lucide-react"
-
-// Mock data for roles
-const initialRoles = [
-  {
-    id: 1,
-    name: "Super Admin",
-    description: "Full system access with all permissions",
-    userCount: 2,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Admin",
-    description: "Administrative access with limited system settings",
-    userCount: 5,
-    createdAt: "2024-01-20",
-  },
-  {
-    id: 3,
-    name: "Manager",
-    description: "Can manage customers, vendors, and view reports",
-    userCount: 8,
-    createdAt: "2024-02-01",
-  },
-  {
-    id: 4,
-    name: "Sales Rep",
-    description: "Can create invoices and manage customer interactions",
-    userCount: 12,
-    createdAt: "2024-02-10",
-  },
-  {
-    id: 5,
-    name: "Accountant",
-    description: "Financial data access and reporting capabilities",
-    userCount: 3,
-    createdAt: "2024-02-15",
-  },
-]
+import { getRoles, createRole, updateRole, deleteRole, getRoleStats } from "@/helpers/api/roles"
+import { getUsers } from "@/helpers/api/users"
+import { toast } from "react-hot-toast"
 
 export default function Roles() {
-  const [roles, setRoles] = useState(initialRoles)
+  const [roles, setRoles] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const [totalPages, setTotalPages] = useState(1)
+  const [itemsPerPage] = useState(10)
+  const [totalResults, setTotalResults] = useState(0) // <-- add this
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [stats, setStats] = useState({ totalRoles: 0, activeUsers: 0, mostUsedRole: "" })
+  const [users, setUsers] = useState([])
 
-  // Filter roles based on search term
-  const filteredRoles = roles.filter(
-    (role) =>
-      role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      role.description.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  // Fetch roles from API
+  const fetchRoles = useCallback(async () => {
+    setLoading(true)
+    setError("")
+    try {
+      const params = {
+        search: searchTerm,
+        page: currentPage,
+        limit: itemsPerPage,
+      }
+      const response = await getRoles(params)
+      console.log("Roles API response:", response)
+      
+      // Extract data from the correct structure
+      const rolesData = Array.isArray(response.data) ? response.data : []
+      const paginationData = response.pagination || {}
+      
+      setRoles(rolesData)
+      setTotalPages(paginationData.totalPages || 1)
+      setTotalResults(paginationData.total || rolesData.length) // <-- set totalResults
+      setStats((prev) => ({
+        ...prev,
+        totalRoles: paginationData.total || rolesData.length
+      }))
+    } catch (err) {
+      console.error("Error fetching roles:", err)
+      const message = err?.response?.data?.message || err?.message || "Failed to load roles."
+      setError(typeof message === "string" ? message : JSON.stringify(message))
+    } finally {
+      setLoading(false)
+    }
+  }, [searchTerm, currentPage, itemsPerPage])
 
-  // Pagination
-  const totalPages = Math.ceil(filteredRoles.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedRoles = filteredRoles.slice(startIndex, startIndex + itemsPerPage)
+  // Fetch users from API
+  const fetchUsers = useCallback(async () => {
+    try {
+      // Fetch all users (or enough to get active count)
+      const params = { page: 1, limit: 1000 } // adjust limit as needed
+      const response = await getUsers(params)
+      // Try to support different API shapes
+      const usersData = response.data || response.users || []
+      setUsers(Array.isArray(usersData) ? usersData : [])
+    } catch (err) {
+      console.error("Error fetching users for active count:", err)
+      setUsers([])
+    }
+  }, [])
+
+  // Fetch stats from API
+  // No longer needed, stats are computed from state
+
+  useEffect(() => {
+    fetchRoles()
+  }, [fetchRoles])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
+
+  // Compute most used role and active users from state
+  useEffect(() => {
+    // Most used role: role with highest userCount
+    let mostUsedRole = "N/A"
+    let maxUserCount = -1
+    if (roles.length > 0) {
+      for (const role of roles) {
+        if (typeof role.userCount === "number" && role.userCount > maxUserCount) {
+          maxUserCount = role.userCount
+          mostUsedRole = role.name
+        }
+      }
+    }
+    // Active users: users with status === "active"
+    const activeUsers = users.filter((u) => u.status === "active").length
+    setStats((prev) => ({
+      ...prev,
+      mostUsedRole,
+      activeUsers
+    }))
+  }, [roles, users])
 
   const handleAddRole = () => {
     setSelectedRole(null)
@@ -84,27 +123,50 @@ export default function Roles() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSaveRole = (roleData) => {
-    if (selectedRole) {
-      // Edit existing role
-      setRoles(roles.map((role) => (role.id === selectedRole.id ? { ...role, ...roleData } : role)))
-    } else {
-      // Add new role
-      const newRole = {
-        id: Math.max(...roles.map((r) => r.id)) + 1,
-        ...roleData,
-        userCount: 0,
-        createdAt: new Date().toISOString().split("T")[0],
+  const handleSaveRole = async (roleData) => {
+    setLoading(true)
+    setError("")
+    try {
+      if (selectedRole) {
+        await updateRole(selectedRole.id, roleData)
+        toast.success("Role updated successfully")
+      } else {
+        await createRole(roleData)
+        toast.success("Role created successfully")
       }
-      setRoles([...roles, newRole])
+      setIsRoleModalOpen(false)
+      fetchRoles()
+      fetchStats()
+    } catch (err) {
+      console.error("Error saving role:", err)
+      const message = err?.response?.data?.message || err?.message || (err.response && err.response.status === 409 ? "A role with this name already exists." : "Failed to save role.")
+      const errorMsg = typeof message === "string" ? message : JSON.stringify(message)
+      setError(errorMsg)
+      toast.error(errorMsg)
+    } finally {
+      setLoading(false)
     }
-    setIsRoleModalOpen(false)
   }
 
-  const handleConfirmDelete = () => {
-    setRoles(roles.filter((role) => role.id !== selectedRole.id))
-    setIsDeleteModalOpen(false)
-    setSelectedRole(null)
+  const handleConfirmDelete = async () => {
+    setLoading(true)
+    setError("")
+    try {
+      await deleteRole(selectedRole.id)
+      toast.success("Role deleted successfully")
+      setIsDeleteModalOpen(false)
+      setSelectedRole(null)
+      fetchRoles()
+      fetchStats()
+    } catch (err) {
+      console.error("Error deleting role:", err)
+      const message = err?.response?.data?.message || err?.message || "Failed to delete role."
+      const errorMsg = typeof message === "string" ? message : JSON.stringify(message)
+      setError(errorMsg)
+      toast.error(errorMsg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -128,7 +190,7 @@ export default function Roles() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Roles</p>
-                <p className="text-2xl font-bold text-gray-900">{roles.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{String(stats.totalRoles || 0)}</p>
               </div>
               <div className="p-3 bg-blue-50 rounded-lg">
                 <Users className="h-6 w-6 text-blue-600" />
@@ -136,13 +198,13 @@ export default function Roles() {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-6">
+        {/* <Card>
+         <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {roles.reduce((sum, role) => sum + role.userCount, 0)}
+                  {String(stats.activeUsers || 0)}
                 </p>
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
@@ -150,13 +212,15 @@ export default function Roles() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Most Used Role</p>
-                <p className="text-2xl font-bold text-gray-900">Sales Rep</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.mostUsedRole || "N/A"}
+                </p>
               </div>
               <div className="p-3 bg-purple-50 rounded-lg">
                 <Users className="h-6 w-6 text-purple-600" />
@@ -184,65 +248,76 @@ export default function Roles() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Role Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Description</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-600">Users</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Created</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-600">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedRoles.map((role) => (
-                  <tr key={role.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4">
-                      <div className="font-medium text-gray-900">{role.name}</div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="text-gray-600 max-w-xs truncate">{role.description}</div>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <Badge variant="secondary" className="bg-blue-50 text-blue-700">
-                        {role.userCount} users
-                      </Badge>
-                    </td>
-                    <td className="py-4 px-4 text-gray-600">{role.createdAt}</td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditRole(role)}
-                          className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteRole(role)}
-                          className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                          disabled={role.userCount > 0}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {loading && <p className="text-center py-8">Loading roles...</p>}
+          {error && <p className="text-center py-8 text-red-500">{error}</p>}
+          {!loading && !error && (
+            <>
+              {roles.length === 0 ? (
+                <p className="text-center py-8 text-gray-500">No roles found.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Role Name</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Description</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-600">Users</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Created</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-600">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {roles.map((role) => (
+                        <tr key={role.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="font-medium text-gray-900">{String(role.name || '')}</div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="text-gray-600 max-w-xs truncate">{String(role.description || '')}</div>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+                              {String(role.userCount || 0)} users
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-4 text-gray-600">{role.createdAt ? new Date(role.createdAt).toLocaleDateString() : 'N/A'}</td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center justify-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditRole(role)}
+                                className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteRole(role)}
+                                className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
+                                disabled={role.userCount > 0}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <div className="text-sm text-gray-600">
-                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredRoles.length)} of{" "}
-                {filteredRoles.length} results
+                Showing {String((currentPage - 1) * itemsPerPage + 1)} to{" "}
+                {String(Math.min(currentPage * itemsPerPage, totalResults))} of{" "}
+                {String(totalResults)} results
               </div>
               <div className="flex space-x-2">
                 <Button

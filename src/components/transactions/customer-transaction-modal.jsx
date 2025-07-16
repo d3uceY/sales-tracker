@@ -12,19 +12,12 @@ import {
   calculateNewBalance,
   formatBalanceStatus,
 } from "../../helpers/balance/balance-calculator"
-
-const customerNames = [
-  "Adebayo Electronics",
-  "Lagos Tech Hub",
-  "Kano Imports Ltd",
-  "Abuja Gadgets",
-  "Port Harcourt Tech",
-  "Computer Village Store",
-  "Other",
-]
-const itemTypes = ["Laptop", "Phone", "Dollar", "Other"]
+import { useCustomerData } from "../../context/CustomerContext"
+import { useItemCategories } from "../../context/ItemCategoryContext"
 
 export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction }) {
+  const { customers, addCustomer, fetchCustomers } = useCustomerData();
+  const { categories, addCategory } = useItemCategories();
   const [formData, setFormData] = useState({
     customerName: "",
     customCustomerName: "",
@@ -104,6 +97,18 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     }
   }, [formData.amountNGN, formData.exchangeRate, previousBalance])
 
+  // Add effect to auto-convert otherExpensesUSD to NGN
+  useEffect(() => {
+    // Only auto-calculate if user hasn't manually changed NGN field
+    if (formData.otherExpensesUSD && formData.exchangeRate) {
+      const usd = parseFloat(formData.otherExpensesUSD) || 0;
+      const rate = parseFloat(formData.exchangeRate) || 1;
+      const ngn = usd * rate;
+      setFormData((prev) => ({ ...prev, otherExpensesNGN: ngn ? ngn.toFixed(2) : "0" }));
+    }
+    // eslint-disable-next-line
+  }, [formData.otherExpensesUSD, formData.exchangeRate]);
+
   const validateForm = () => {
     const newErrors = {}
 
@@ -124,17 +129,32 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (validateForm()) {
-      const finalCustomerName = formData.customerName === "Other" ? formData.customCustomerName : formData.customerName
-      const finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
-
+      let finalCustomerName = formData.customerName === "Other" ? formData.customCustomerName : formData.customerName
+      let customerId = null;
+      if (formData.customerName === "Other") {
+        // Create the customer first
+        const newCustomer = await addCustomer({ name: formData.customCustomerName })
+        finalCustomerName = newCustomer.name
+        customerId = newCustomer.id
+        await fetchCustomers(); // Refresh list for next time
+      } else {
+        // Find the selected customer in the list
+        const selected = (customers || []).find(c => c.name === formData.customerName)
+        customerId = selected ? selected.id : null
+      }
+      let finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
+      if (formData.itemPurchased === "Other" && formData.customItemName) {
+        // Add the new item to categories
+        addCategory({ name: formData.customItemName, description: "User added", active: true })
+      }
       const amountPaidValue = Number.parseFloat(formData.amountPaid) || totalUSD
       const newOutstandingBalance = calculateNewBalance(previousBalance, totalUSD, amountPaidValue)
-
       const transactionData = {
         customerName: finalCustomerName,
+        customerId,
         itemPurchased: finalItemName,
         transactionDate: formData.transactionDate,
         quantity: Number.parseFloat(formData.quantity),
@@ -160,6 +180,11 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
       setErrors((prev) => ({ ...prev, [field]: "" }))
     }
   }
+
+  const customerOptions = (customers || []).map(c => c.name).concat("Other");
+  // Only add 'Other' if it is not already present in the categories
+  const itemOptionsBase = (categories || []).filter(c => c.active).map(c => c.name);
+  const itemOptions = itemOptionsBase.includes("Other") ? itemOptionsBase : [...itemOptionsBase, "Other"];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -216,7 +241,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                   <SelectValue placeholder="Select customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customerNames.map((customer) => (
+                  {customerOptions.map((customer) => (
                     <SelectItem key={customer} value={customer}>
                       {customer}
                     </SelectItem>
@@ -243,7 +268,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                   <SelectValue placeholder="Select item type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {itemTypes.map((item) => (
+                  {itemOptions.map((item) => (
                     <SelectItem key={item} value={item}>
                       {item}
                     </SelectItem>

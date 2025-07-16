@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
   LayoutDashboard,
   Users,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "../../context/auth-context"
 
 const menuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -27,6 +28,13 @@ const menuItems = [
 
 export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, setIsMobileMenuOpen }) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate("/login")
+  }
 
   return (
     <>
@@ -59,7 +67,7 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
             <X className="h-6 w-6" />
           </Button>
         </div>
-        <SidebarContent location={location} />
+        <SidebarContent location={location} handleLogout={handleLogout} />
       </div>
 
       {/* Desktop sidebar */}
@@ -89,13 +97,13 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
             />
           </button>
         </div>
-        <SidebarContent location={location} isSidebarCollapsed={isSidebarCollapsed} />
+        <SidebarContent location={location} isSidebarCollapsed={isSidebarCollapsed} handleLogout={handleLogout} />
       </div>
     </>
   )
 }
 
-function SidebarContent({ location, isSidebarCollapsed = false }) {
+function SidebarContent({ location, isSidebarCollapsed = false, handleLogout }) {
   return (
     <>
       <nav className="flex-1 px-4 py-6 space-y-2">
@@ -129,6 +137,7 @@ function SidebarContent({ location, isSidebarCollapsed = false }) {
       {/* Logout Button */}
       <div className="px-4 py-4 border-t border-gray-200">
         <button
+          onClick={handleLogout}
           className={cn(
             "flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-all duration-200",
             isSidebarCollapsed && "justify-center",

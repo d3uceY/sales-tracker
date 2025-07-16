@@ -56,6 +56,8 @@ authAxios.interceptors.response.use(
   },
 )
 
+export { authAxios }
+
 export const authApi = {
   // Login user
   login: async (credentials) => {
