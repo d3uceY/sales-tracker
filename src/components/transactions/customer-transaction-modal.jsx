@@ -16,10 +16,10 @@ import { useCustomerData } from "../../context/CustomerContext"
 import { useItemCategories } from "../../context/ItemCategoryContext"
 
 export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction }) {
-  const { customers, addCustomer, fetchCustomers } = useCustomerData();
+  const { customers, addCustomer, fetchCustomers, loading } = useCustomerData();
   const { categories, addCategory } = useItemCategories();
   const [formData, setFormData] = useState({
-    customerName: "",
+    customerId: "",
     customCustomerName: "",
     itemPurchased: "",
     customItemName: "",
@@ -33,6 +33,8 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     amountPaid: "",
   })
   const [errors, setErrors] = useState({})
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [previousBalance, setPreviousBalance] = useState(0)
   const [balanceInfo, setBalanceInfo] = useState({ status: "paid", color: "green", text: "No Outstanding Balance" })
@@ -42,9 +44,15 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
   const totalUSD = amountUSD + (Number.parseFloat(formData.otherExpensesUSD) || 0)
 
   useEffect(() => {
+    if (isOpen) fetchCustomers();
+  }, [isOpen]);
+
+  useEffect(() => {
     if (transaction) {
+      // Find the customer by name to get the ID
+      const selected = (customers || []).find(c => c.name.trim().toLowerCase() === transaction.customerName.trim().toLowerCase());
       setFormData({
-        customerName: transaction.customerName === "Other" ? "Other" : transaction.customerName,
+        customerId: selected ? selected.id : "",
         customCustomerName: transaction.customerName === "Other" ? "" : transaction.customerName,
         itemPurchased: transaction.itemPurchased === "Other" ? "Other" : transaction.itemPurchased,
         customItemName: transaction.itemPurchased === "Other" ? "" : transaction.itemPurchased,
@@ -59,7 +67,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
       })
     } else {
       setFormData({
-        customerName: "",
+        customerId: "",
         customCustomerName: "",
         itemPurchased: "",
         customItemName: "",
@@ -74,19 +82,19 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
       })
     }
     setErrors({})
-  }, [transaction, isOpen])
+  }, [transaction, isOpen, customers])
 
   useEffect(() => {
-    if (formData.customerName && formData.customerName !== "Other") {
+    if (formData.customerId && formData.customerId !== "Other") {
       // In a real app, you'd fetch this from your transactions context or API
-      const prevBalance = getCustomerPreviousBalance(formData.customerName, [])
+      const prevBalance = getCustomerPreviousBalance(formData.customerId, [])
       setPreviousBalance(prevBalance)
       setBalanceInfo(formatBalanceStatus(prevBalance))
     } else {
       setPreviousBalance(0)
       setBalanceInfo({ status: "paid", color: "green", text: "No Outstanding Balance" })
     }
-  }, [formData.customerName])
+  }, [formData.customerId])
 
   useEffect(() => {
     // Recalculate balance info when amounts change
@@ -112,10 +120,10 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
   const validateForm = () => {
     const newErrors = {}
 
-    const finalCustomerName = formData.customerName === "Other" ? formData.customCustomerName : formData.customerName
+    const finalCustomerName = formData.customerId === "Other" ? formData.customCustomerName : formData.customerId;
     const finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
 
-    if (!finalCustomerName.trim()) newErrors.customerName = "Customer name is required"
+    if (!finalCustomerName.trim()) newErrors.customerId = "Customer name is required"
     if (!finalItemName.trim()) newErrors.itemPurchased = "Item type is required"
     if (!formData.transactionDate) newErrors.transactionDate = "Transaction date is required"
     if (!formData.quantity || Number.parseFloat(formData.quantity) <= 0)
@@ -130,41 +138,68 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+    setSubmitError("");
     if (validateForm()) {
-      let finalCustomerName = formData.customerName === "Other" ? formData.customCustomerName : formData.customerName
-      let customerId = null;
-      if (formData.customerName !== "Other") {
-        // Find the selected customer in the list
-        const selected = (customers || []).find(c => c.name === formData.customerName)
-        customerId = selected ? selected.id : null
+      setSubmitLoading(true);
+      try {
+        let customerId = formData.customerId;
+        let finalCustomerName = "";
+        // If "Other", create the customer first
+        if (formData.customerId === "Other") {
+          try {
+            const res = await addCustomer({ name: formData.customCustomerName });
+            customerId = res?.data?.id;
+            finalCustomerName = res?.data?.name;
+            if (!customerId) {
+              setSubmitError("Failed to get new customer ID. Please try again.");
+              setSubmitLoading(false);
+              return;
+            }
+            await fetchCustomers();
+            setFormData((prev) => ({ ...prev, customerId, customCustomerName: "" }));
+          } catch (err) {
+            setSubmitError("Failed to create customer. Please try again.");
+            setSubmitLoading(false);
+            return;
+          }
+        } else {
+          const selected = (customers || []).find(c => c.id === formData.customerId);
+          finalCustomerName = selected ? selected.name : "";
+          if (!customerId) {
+            setSubmitError("Could not find the selected customer. Please try again.");
+            setSubmitLoading(false);
+            return;
+          }
+        }
+        let finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased;
+        if (formData.itemPurchased === "Other" && formData.customItemName) {
+          addCategory({ name: formData.customItemName, description: "User added", active: true });
+        }
+        const amountPaidValue = Number.parseFloat(formData.amountPaid) || totalUSD;
+        const newOutstandingBalance = calculateNewBalance(previousBalance, totalUSD, amountPaidValue);
+        const transactionData = {
+          itemPurchased: finalItemName,
+          transactionDate: formData.transactionDate,
+          quantity: Number.parseFloat(formData.quantity),
+          amountNGN: Number.parseFloat(formData.amountNGN),
+          exchangeRate: Number.parseFloat(formData.exchangeRate),
+          amountUSD: amountUSD,
+          otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
+          otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
+          paymentStatus: newOutstandingBalance > 0 ? "unpaid" : "paid",
+          totalNGN: totalNGN,
+          totalUSD: totalUSD,
+          amountPaid: amountPaidValue,
+          previousBalance: previousBalance,
+          outstandingBalance: newOutstandingBalance,
+        };
+        await onSave({ customerId, transactionData });
+        setSubmitLoading(false);
+      } catch (err) {
+        setSubmitError("An error occurred while saving the transaction. Please try again.");
+        setSubmitLoading(false);
       }
-      let finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
-      if (formData.itemPurchased === "Other" && formData.customItemName) {
-        // Add the new item to categories
-        addCategory({ name: formData.customItemName, description: "User added", active: true })
-      }
-      const amountPaidValue = Number.parseFloat(formData.amountPaid) || totalUSD
-      const newOutstandingBalance = calculateNewBalance(previousBalance, totalUSD, amountPaidValue)
-      const transactionData = {
-        customerName: finalCustomerName,
-        customerId,
-        itemPurchased: finalItemName,
-        transactionDate: formData.transactionDate,
-        quantity: Number.parseFloat(formData.quantity),
-        amountNGN: Number.parseFloat(formData.amountNGN),
-        exchangeRate: Number.parseFloat(formData.exchangeRate),
-        amountUSD: amountUSD,
-        otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
-        otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
-        paymentStatus: newOutstandingBalance > 0 ? "unpaid" : "paid",
-        totalNGN: totalNGN,
-        totalUSD: totalUSD,
-        amountPaid: amountPaidValue,
-        previousBalance: previousBalance,
-        outstandingBalance: newOutstandingBalance,
-      }
-      onSave(transactionData)
     }
   }
 
@@ -175,7 +210,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     }
   }
 
-  const customerOptions = (customers || []).map(c => c.name).concat("Other");
+  const customerOptions = (customers || []).map(c => ({ id: c.id, name: c.name })).concat({ id: "Other", name: "Other" });
   // Only add 'Other' if it is not already present in the categories
   const itemOptionsBase = (categories || []).filter(c => c.active).map(c => c.name);
   const itemOptions = itemOptionsBase.includes("Other") ? itemOptionsBase : [...itemOptionsBase, "Other"];
@@ -194,7 +229,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
           </div>
         </DialogHeader>
 
-        {formData.customerName && formData.customerName !== "Other" && (
+        {formData.customerId && formData.customerId !== "Other" && (
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <h3 className="text-sm font-medium text-blue-900 mb-2">Customer Balance Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -227,22 +262,22 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customerName" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="customerId" className="text-sm font-medium text-gray-700">
                 Customer Name *
               </Label>
-              <Select value={formData.customerName} onValueChange={(value) => handleChange("customerName", value)}>
-                <SelectTrigger className={`mt-1 ${errors.customerName ? "border-red-500" : ""}`}>
-                  <SelectValue placeholder="Select customer" />
+              <Select value={formData.customerId} onValueChange={(value) => handleChange("customerId", value)} disabled={loading || customers.length === 0}>
+                <SelectTrigger className={`mt-1 ${errors.customerId ? "border-red-500" : ""}`}>
+                  <SelectValue placeholder={loading ? "Loading customers..." : "Select customer"} />
                 </SelectTrigger>
                 <SelectContent>
                   {customerOptions.map((customer) => (
-                    <SelectItem key={customer} value={customer}>
-                      {customer}
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {formData.customerName === "Other" && (
+              {formData.customerId === "Other" && (
                 <Input
                   placeholder="Enter customer name"
                   value={formData.customCustomerName}
@@ -250,7 +285,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                   className="mt-2"
                 />
               )}
-              {errors.customerName && <p className="mt-1 text-sm text-red-600">{errors.customerName}</p>}
+              {errors.customerId && <p className="mt-1 text-sm text-red-600">{errors.customerId}</p>}
             </div>
 
             <div>
@@ -424,11 +459,12 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
           </div>
 
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>
+            {submitError && <p className="text-red-600 text-sm flex-1 self-center">{submitError}</p>}
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitLoading}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-green-600 hover:bg-green-700">
-              {transaction ? "Update Sale" : "Create Sale"}
+            <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={submitLoading}>
+              {submitLoading ? "Processing..." : (transaction ? "Update Sale" : "Create Sale")}
             </Button>
           </div>
         </form>

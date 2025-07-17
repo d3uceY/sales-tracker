@@ -21,17 +21,10 @@ export const CustomerProvider = ({ children }) => {
   const [filters, setFilters] = useState({ search: "", status: "all", item: "all" });
 
   // Fetch customers with filters and pagination
-  const fetchCustomers = useCallback(async (params = {}) => {
+  const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, total } = await getCustomers({
-        page: params.page || pagination.page,
-        pageSize: params.pageSize || pagination.pageSize,
-        search: params.search ?? filters.search,
-        status: params.status ?? filters.status,
-        item: params.item ?? filters.item,
-        ...params,
-      });
+      const { data, total } = await getCustomers();
       setCustomers(data);
       setPagination((prev) => ({ ...prev, total: total || data.length }));
       setLoading(false);
@@ -39,7 +32,7 @@ export const CustomerProvider = ({ children }) => {
       setError(err);
       setLoading(false);
     }
-  }, [pagination.page, pagination.pageSize, filters]);
+  }, []);
 
   useEffect(() => {
     fetchCustomers();
