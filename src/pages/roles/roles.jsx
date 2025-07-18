@@ -11,6 +11,7 @@ import { Plus, Search, Edit, Trash2, Users } from "lucide-react"
 import { getRoles, createRole, updateRole, deleteRole, getRoleStats } from "@/helpers/api/roles"
 import { getUsers } from "@/helpers/api/users"
 import { toast } from "react-hot-toast"
+import Spinner from "@/components/ui/spinner"
 
 export default function Roles() {
   const [roles, setRoles] = useState([])
@@ -248,7 +249,11 @@ export default function Roles() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading && <p className="text-center py-8">Loading roles...</p>}
+          {loading && (
+            <div className="py-8 flex justify-center">
+              <Spinner />
+            </div>
+          )}
           {error && <p className="text-center py-8 text-red-500">{error}</p>}
           {!loading && !error && (
             <>

@@ -32,5 +32,17 @@ export const deleteTransaction = async (transactionId) => {
   const response = await authAxios.delete(`/transactions/${transactionId}`);
   return response.data;
 };
+
+// Create a transaction for a vendor
+export const createVendorTransaction = async (vendorId, transactionData) => {
+  const response = await authAxios.post(`/vendors/${vendorId}/transactions`, transactionData)
+  return response.data
+}
+
+// Fetch all vendor transactions
+export const getAllVendorTransactions = async () => {
+  const response = await authAxios.get("/transactions/all-with-vendor")
+  return response.data
+}
   
   

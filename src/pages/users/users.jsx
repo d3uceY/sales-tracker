@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { UserModal } from "../../components/admin/user-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { Plus, Search, Edit, Trash2, UsersIcon, UserCheck, UserX } from "lucide-react"
+import Spinner from "@/components/ui/spinner"
 
 export default function UserManagement() {
   const [users, setUsers] = useState([])
@@ -247,7 +248,11 @@ export default function UserManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading && <p className="text-center py-4">Loading users...</p>}
+          {loading && (
+            <div className="py-4 flex justify-center">
+              <Spinner />
+            </div>
+          )}
           {error && <p className="text-center py-4 text-red-600">{error}</p>}
           {!loading && !error && (
             <div className="overflow-x-auto">

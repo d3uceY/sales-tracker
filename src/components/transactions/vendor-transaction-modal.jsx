@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X } from "lucide-react"
+import { getVendors, createVendor } from "@/helpers/api/vendors"
 
 const vendorNames = ["Best Buy", "Amazon", "Newegg", "B&H Photo", "Walmart", "Currency Exchange", "Other"]
 const itemTypes = ["Laptop", "Phone", "Dollar", "Other"]
@@ -26,6 +27,23 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
     paymentStatus: "unpaid",
   })
   const [errors, setErrors] = useState({})
+  const [vendors, setVendors] = useState([])
+  const [loadingVendors, setLoadingVendors] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
+  const [apiError, setApiError] = useState("")
+
+  // Fetch vendors on open
+  useEffect(() => {
+    if (isOpen) {
+      setLoadingVendors(true)
+      getVendors()
+        .then((res) => {
+          setVendors(res.data || [])
+        })
+        .catch(() => setVendors([]))
+        .finally(() => setLoadingVendors(false))
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (transaction) {
@@ -62,8 +80,9 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
 
   // Auto-calculate NGN amounts
   const amountNGN = (Number.parseFloat(formData.amountUSD) || 0) * (Number.parseFloat(formData.exchangeRate) || 0)
+  const otherExpensesNGN = (Number.parseFloat(formData.otherExpensesUSD) || 0) * (Number.parseFloat(formData.exchangeRate) || 0)
   const totalUSD = (Number.parseFloat(formData.amountUSD) || 0) + (Number.parseFloat(formData.otherExpensesUSD) || 0)
-  const totalNGN = amountNGN + (Number.parseFloat(formData.otherExpensesNGN) || 0)
+  const totalNGN = amountNGN + otherExpensesNGN
 
   const validateForm = () => {
     const newErrors = {}
@@ -85,27 +104,48 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (validateForm()) {
-      const finalVendorName = formData.vendorName === "Other" ? formData.customVendorName : formData.vendorName
-      const finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
-
+    setApiError("")
+    if (!validateForm()) return
+    setSubmitLoading(true)
+    try {
+      let vendorId = null
+      let vendorName = formData.vendorName === "Other" ? formData.customVendorName : formData.vendorName
+      // If 'Other', create vendor first
+      if (formData.vendorName === "Other") {
+        const newVendor = await createVendor({ name: vendorName })
+        vendorId = newVendor.data?.id
+        // Optionally, refresh vendor list
+        setVendors((prev) => [...prev, newVendor.data])
+      } else {
+        const selected = vendors.find((v) => v.name === vendorName)
+        vendorId = selected?.id
+      }
+      if (!vendorId) throw new Error("Vendor not found or created.")
+      // Prepare transaction payload
       const transactionData = {
-        vendorName: finalVendorName,
-        itemPurchased: finalItemName,
+        itemPurchased: formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased,
         transactionDate: formData.transactionDate,
         quantity: Number.parseFloat(formData.quantity),
         amountUSD: Number.parseFloat(formData.amountUSD),
         exchangeRate: Number.parseFloat(formData.exchangeRate),
         amountNGN: amountNGN,
         otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
-        otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
+        otherExpensesNGN: otherExpensesNGN,
         paymentStatus: formData.paymentStatus,
         totalUSD: totalUSD,
         totalNGN: totalNGN,
       }
-      onSave(transactionData)
+      // Call create transaction API
+      const { createVendorTransaction } = await import("@/helpers/api/transaction")
+      await createVendorTransaction(vendorId, transactionData)
+      onSave && onSave({ ...transactionData, vendorName, vendorId })
+      onClose && onClose()
+    } catch (err) {
+      setApiError(err.message || "Failed to create transaction.")
+    } finally {
+      setSubmitLoading(false)
     }
   }
 
@@ -129,23 +169,28 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
             </Button>
           </div>
         </DialogHeader>
-
+        {apiError && <div className="text-red-600 text-sm mb-2">{apiError}</div>}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="vendorName" className="text-sm font-medium text-gray-700">
                 Vendor Name *
               </Label>
-              <Select value={formData.vendorName} onValueChange={(value) => handleChange("vendorName", value)}>
+              <Select
+                value={formData.vendorName}
+                onValueChange={(value) => handleChange("vendorName", value)}
+                disabled={loadingVendors}
+              >
                 <SelectTrigger className={`mt-1 ${errors.vendorName ? "border-red-500" : ""}`}>
-                  <SelectValue placeholder="Select vendor" />
+                  <SelectValue placeholder={loadingVendors ? "Loading vendors..." : "Select vendor"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {vendorNames.map((vendor) => (
-                    <SelectItem key={vendor} value={vendor}>
-                      {vendor}
+                  {vendors.map((vendor) => (
+                    <SelectItem key={vendor.id} value={vendor.name}>
+                      {vendor.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
               {formData.vendorName === "Other" && (
@@ -271,10 +316,11 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
                 id="otherExpensesNGN"
                 type="number"
                 step="0.01"
-                value={formData.otherExpensesNGN}
-                onChange={(e) => handleChange("otherExpensesNGN", e.target.value)}
+                value={otherExpensesNGN.toFixed(2)}
+                readOnly
                 placeholder="0.00"
-                className="mt-1"
+                className="mt-1 bg-gray-100 cursor-not-allowed"
+                tabIndex={-1}
               />
             </div>
 
@@ -314,11 +360,11 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
           </div>
 
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitLoading}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-              {transaction ? "Update Transaction" : "Create Transaction"}
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={submitLoading}>
+              {submitLoading ? "Saving..." : transaction ? "Update Transaction" : "Create Transaction"}
             </Button>
           </div>
         </form>

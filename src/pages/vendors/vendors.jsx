@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,88 +12,12 @@ import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
 import { formatDate } from "../../helpers/date/formatDate"
 import { downloadInvoicePDF } from "../../helpers/invoice/invoice-generator"
-
-// Mock data for vendor transactions
-const initialVendorTransactions = [
-  {
-    id: 1,
-    vendorName: "Best Buy",
-    itemPurchased: "Laptop",
-    transactionDate: "2024-01-15",
-    quantity: 5,
-    amountUSD: 2500.0,
-    exchangeRate: 1650,
-    amountNGN: 4125000,
-    otherExpensesUSD: 150.0,
-    otherExpensesNGN: 247500,
-    paymentStatus: "paid",
-    totalUSD: 2650.0,
-    totalNGN: 4372500,
-  },
-  {
-    id: 2,
-    vendorName: "Amazon",
-    itemPurchased: "Phone",
-    transactionDate: "2024-01-18",
-    quantity: 10,
-    amountUSD: 8000.0,
-    exchangeRate: 1650,
-    amountNGN: 13200000,
-    otherExpensesUSD: 200.0,
-    otherExpensesNGN: 330000,
-    paymentStatus: "unpaid",
-    totalUSD: 8200.0,
-    totalNGN: 13530000,
-  },
-  {
-    id: 3,
-    vendorName: "Currency Exchange",
-    itemPurchased: "Dollar",
-    transactionDate: "2024-01-20",
-    quantity: 10000,
-    amountUSD: 10000.0,
-    exchangeRate: 1650,
-    amountNGN: 16500000,
-    otherExpensesUSD: 50.0,
-    otherExpensesNGN: 82500,
-    paymentStatus: "paid",
-    totalUSD: 10050.0,
-    totalNGN: 16582500,
-  },
-  {
-    id: 4,
-    vendorName: "Newegg",
-    itemPurchased: "Laptop",
-    transactionDate: "2024-01-22",
-    quantity: 3,
-    amountUSD: 1800.0,
-    exchangeRate: 1660,
-    amountNGN: 2988000,
-    otherExpensesUSD: 100.0,
-    otherExpensesNGN: 166000,
-    paymentStatus: "paid",
-    totalUSD: 1900.0,
-    totalNGN: 3154000,
-  },
-  {
-    id: 5,
-    vendorName: "B&H Photo",
-    itemPurchased: "Other",
-    transactionDate: "2024-01-25",
-    quantity: 2,
-    amountUSD: 1200.0,
-    exchangeRate: 1655,
-    amountNGN: 1986000,
-    otherExpensesUSD: 75.0,
-    otherExpensesNGN: 124125,
-    paymentStatus: "unpaid",
-    totalUSD: 1275.0,
-    totalNGN: 2110125,
-  },
-]
+import { getAllVendorTransactions } from "@/helpers/api/transaction"
+import Spinner from "@/components/ui/spinner"
 
 export default function VendorTransactions() {
-  const [transactions, setTransactions] = useState(initialVendorTransactions)
+  const [transactions, setTransactions] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [itemFilter, setItemFilter] = useState("all")
@@ -102,6 +26,14 @@ export default function VendorTransactions() {
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  useEffect(() => {
+    setLoading(true)
+    getAllVendorTransactions()
+      .then((res) => setTransactions(res || []))
+      .catch(() => setTransactions([]))
+      .finally(() => setLoading(false))
+  }, [])
 
   // Filter transactions
   const filteredTransactions = transactions.filter((transaction) => {
@@ -186,53 +118,53 @@ export default function VendorTransactions() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Transactions</p>
-                <p className="text-2xl font-bold text-gray-900">{transactions.length}</p>
-              </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <Building2 className="h-6 w-6 text-blue-600" />
-              </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                Total Transactions
+                <span className="inline-flex p-1 bg-blue-50 rounded-lg">
+                  <Building2 className="h-5 w-5 text-blue-600" />
+                </span>
+              </p>
+              <p className="text-2xl font-bold text-gray-900">{transactions.length}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Spent (USD)</p>
-                <p className="text-2xl font-bold text-green-600">{formatUsdCurrency(totalSpentUSD)}</p>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <DollarSign className="h-6 w-6 text-green-600" />
-              </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                Total Spent (USD)
+                <span className="inline-flex p-1 bg-green-50 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-green-600" />
+                </span>
+              </p>
+              <p className="text-2xl font-bold text-green-600">{formatUsdCurrency(totalSpentUSD)}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Spent (NGN)</p>
-                <p className="text-2xl font-bold text-purple-600">{formatNgnCurrency(totalSpentNGN)}</p>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
-              </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                Total Spent (NGN)
+                <span className="inline-flex p-1 bg-purple-50 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-purple-600" />
+                </span>
+              </p>
+              <p className="text-2xl font-bold text-purple-600">{formatNgnCurrency(totalSpentNGN)}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Unpaid</p>
-                <p className="text-2xl font-bold text-red-600">{unpaidTransactions}</p>
-              </div>
-              <div className="p-3 bg-red-50 rounded-lg">
-                <Building2 className="h-6 w-6 text-red-600" />
-              </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                Unpaid
+                <span className="inline-flex p-1 bg-red-50 rounded-lg">
+                  <Building2 className="h-5 w-5 text-red-600" />
+                </span>
+              </p>
+              <p className="text-2xl font-bold text-red-600">{unpaidTransactions}</p>
             </div>
           </CardContent>
         </Card>
@@ -298,100 +230,114 @@ export default function VendorTransactions() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedTransactions.map((transaction, index) => (
-                  <tr
-                    key={transaction.id}
-                    className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                      index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                    }`}
-                  >
-                    <td className="py-4 px-4 font-medium text-gray-900">{startIndex + index + 1}</td>
-                    <td className="py-4 px-4 font-medium text-gray-900">{transaction.vendorName}</td>
-                    <td className="py-4 px-4">
-                      <Badge
-                        variant="secondary"
-                        className={
-                          transaction.itemPurchased === "Laptop"
-                            ? "bg-blue-50 text-blue-700"
-                            : transaction.itemPurchased === "Phone"
-                              ? "bg-green-50 text-green-700"
-                              : transaction.itemPurchased === "Dollar"
-                                ? "bg-yellow-50 text-yellow-700"
-                                : "bg-gray-50 text-gray-700"
-                        }
-                      >
-                        {transaction.itemPurchased}
-                      </Badge>
-                    </td>
-                    <td className="py-4 px-4 text-gray-600">{formatDate(transaction.transactionDate)}</td>
-                    <td className="py-4 px-4 text-center text-gray-900">
-                      {transaction.itemPurchased === "Dollar"
-                        ? formatUsdCurrency(transaction.quantity)
-                        : transaction.quantity}
-                    </td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-900">
-                      {formatUsdCurrency(transaction.amountUSD)}
-                    </td>
-                    <td className="py-4 px-4 text-center text-gray-600">₦{transaction.exchangeRate}</td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-900">
-                      {formatNgnCurrency(transaction.amountNGN)}
-                    </td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-600">
-                      {formatUsdCurrency(transaction.otherExpensesUSD)}
-                    </td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-600">
-                      {formatNgnCurrency(transaction.otherExpensesNGN)}
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <Badge
-                        className={
-                          transaction.paymentStatus === "paid"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }
-                      >
-                        {transaction.paymentStatus.charAt(0).toUpperCase() + transaction.paymentStatus.slice(1)}
-                      </Badge>
-                    </td>
-                    <td className="py-4 px-4 text-right font-mono font-bold text-gray-900">
-                      <div className="group relative">
-                        {formatUsdCurrency(transaction.totalUSD)}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          NGN: {formatNgnCurrency(transaction.totalNGN)}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditTransaction(transaction)}
-                          className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTransaction(transaction)}
-                          className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleGenerateInvoice(transaction)}
-                          className="h-8 w-8 hover:bg-purple-50 hover:text-purple-600"
-                          title="Generate Invoice"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {loading ? (
+                  <tr>
+                    <td colSpan="13" className="py-8">
+                      <Spinner />
                     </td>
                   </tr>
-                ))}
+                ) : filteredTransactions.length === 0 ? (
+                  <tr>
+                    <td colSpan="13" className="py-8 text-center text-gray-500">
+                      No transactions found.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedTransactions.map((transaction, index) => (
+                    <tr
+                      key={transaction.id}
+                      className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                        index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                      }`}
+                    >
+                      <td className="py-4 px-4 font-medium text-gray-900">{startIndex + index + 1}</td>
+                      <td className="py-4 px-4 font-medium text-gray-900">{transaction.vendorName}</td>
+                      <td className="py-4 px-4">
+                        <Badge
+                          variant="secondary"
+                          className={
+                            transaction.itemPurchased === "Laptop"
+                              ? "bg-blue-50 text-blue-700"
+                              : transaction.itemPurchased === "Phone"
+                                ? "bg-green-50 text-green-700"
+                                : transaction.itemPurchased === "Dollar"
+                                  ? "bg-yellow-50 text-yellow-700"
+                                  : "bg-gray-50 text-gray-700"
+                          }
+                        >
+                          {transaction.itemPurchased}
+                        </Badge>
+                      </td>
+                      <td className="py-4 px-4 text-gray-600">{formatDate(transaction.transactionDate)}</td>
+                      <td className="py-4 px-4 text-center text-gray-900">
+                        {transaction.itemPurchased === "Dollar"
+                          ? formatUsdCurrency(transaction.quantity)
+                          : transaction.quantity}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono text-gray-900">
+                        {formatUsdCurrency(transaction.amountUSD)}
+                      </td>
+                      <td className="py-4 px-4 text-center text-gray-600">₦{transaction.exchangeRate}</td>
+                      <td className="py-4 px-4 text-right font-mono text-gray-900">
+                        {formatNgnCurrency(transaction.amountNGN)}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono text-gray-600">
+                        {formatUsdCurrency(transaction.otherExpensesUSD)}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono text-gray-600">
+                        {formatNgnCurrency(transaction.otherExpensesNGN)}
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <Badge
+                          className={
+                            transaction.paymentStatus === "paid"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }
+                        >
+                          {transaction.paymentStatus.charAt(0).toUpperCase() + transaction.paymentStatus.slice(1)}
+                        </Badge>
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono font-bold text-gray-900">
+                        <div className="group relative">
+                          {formatUsdCurrency(transaction.totalUSD)}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            NGN: {formatNgnCurrency(transaction.totalNGN)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center justify-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditTransaction(transaction)}
+                            className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteTransaction(transaction)}
+                            className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleGenerateInvoice(transaction)}
+                            className="h-8 w-8 hover:bg-purple-50 hover:text-purple-600"
+                            title="Generate Invoice"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

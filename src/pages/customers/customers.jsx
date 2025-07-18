@@ -15,6 +15,7 @@ import { downloadInvoicePDF } from "../../helpers/invoice/invoice-generator"
 import axios from "axios"
 import { authAxios } from "../../helpers/api/auth"
 import React from "react"
+import Spinner from "@/components/ui/spinner"
 
 export default function CustomerTransactions() {
   // All hooks must be called unconditionally and at the top
@@ -24,11 +25,24 @@ export default function CustomerTransactions() {
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState(null)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [itemFilter, setItemFilter] = useState("all");
 
   // Stats (always call useMemo, never conditionally)
   const totalRevenueNGN = useMemo(() => transactions.reduce((sum, t) => sum + (t?.totalNGN || 0), 0), [transactions]);
   const totalRevenueUSD = useMemo(() => transactions.reduce((sum, t) => sum + (t?.totalUSD || 0), 0), [transactions]);
   const unpaidTransactions = useMemo(() => transactions.filter((t) => t?.paymentStatus === "unpaid").length, [transactions]);
+
+  // Filter transactions like vendors
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesSearch =
+      transaction.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.itemPurchased?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || transaction.paymentStatus === statusFilter;
+    const matchesItem = itemFilter === "all" || transaction.itemPurchased === itemFilter;
+    return matchesSearch && matchesStatus && matchesItem;
+  });
 
   // Move fetchTransactions out of useEffect so it can be reused
   async function fetchTransactions() {
@@ -69,10 +83,6 @@ export default function CustomerTransactions() {
           <p>{error.message || String(error)}</p>
         </div>
       );
-    }
-
-    if (loading) {
-      return <div className="p-8 text-center">Loading...</div>;
     }
 
     const handleAddTransaction = () => {
@@ -209,8 +219,8 @@ export default function CustomerTransactions() {
               <CardTitle className="text-xl font-semibold text-gray-900">All Customer Sales</CardTitle>
               <div className="flex flex-col sm:flex-row gap-4">
                 <select
-                  value="all" // No filtering options for now
-                  onChange={(e) => {}}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="all">All Status</option>
@@ -218,8 +228,8 @@ export default function CustomerTransactions() {
                   <option value="unpaid">Unpaid</option>
                 </select>
                 <select
-                  value="all" // No filtering options for now
-                  onChange={(e) => {}}
+                  value={itemFilter}
+                  onChange={(e) => setItemFilter(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="all">All Items</option>
@@ -233,8 +243,8 @@ export default function CustomerTransactions() {
                   <Input
                     type="text"
                     placeholder="Search customers or items..."
-                    value="" // No search functionality for now
-                    onChange={(e) => {}}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>
@@ -262,100 +272,114 @@ export default function CustomerTransactions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map((transaction, index) => (
-                    <tr
-                      key={transaction.id}
-                      className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                      }`}
-                    >
-                      <td className="py-4 px-4 font-medium text-gray-900">{index + 1}</td>
-                      <td className="py-4 px-4 font-medium text-gray-900">{transaction.customerName}</td>
-                      <td className="py-4 px-4">
-                        <Badge
-                          variant="secondary"
-                          className={
-                            transaction.itemPurchased === "Laptop"
-                              ? "bg-blue-50 text-blue-700"
-                              : transaction.itemPurchased === "Phone"
-                                ? "bg-green-50 text-green-700"
-                                : transaction.itemPurchased === "Dollar"
-                                  ? "bg-yellow-50 text-yellow-700"
-                                  : "bg-gray-50 text-gray-700"
-                          }
-                        >
-                          {transaction.itemPurchased}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-4 text-gray-600">{formatDate(transaction.transactionDate)}</td>
-                      <td className="py-4 px-4 text-center text-gray-900">
-                        {transaction.itemPurchased === "Dollar"
-                          ? formatUsdCurrency(transaction.quantity)
-                          : transaction.quantity}
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono text-gray-900">
-                        {formatNgnCurrency(transaction.amountNGN)}
-                      </td>
-                      <td className="py-4 px-4 text-center text-gray-600">₦{transaction.exchangeRate}</td>
-                      <td className="py-4 px-4 text-right font-mono text-gray-900">
-                        {formatUsdCurrency(transaction.amountUSD)}
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono text-gray-600">
-                        {formatUsdCurrency(transaction.otherExpensesUSD)}
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono text-gray-600">
-                        {formatNgnCurrency(transaction.otherExpensesNGN)}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <Badge
-                          className={
-                            transaction.paymentStatus === "paid"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }
-                        >
-                          {formatStatus(transaction.paymentStatus)}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono font-bold text-gray-900">
-                        <div className="group relative">
-                          {formatNgnCurrency(transaction.totalNGN)}
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                            USD: {formatUsdCurrency(transaction.totalUSD)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center justify-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditTransaction(transaction)}
-                            className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteTransaction(transaction)}
-                            className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleGenerateInvoice(transaction)}
-                            className="h-8 w-8 hover:bg-purple-50 hover:text-purple-600"
-                            title="Generate Invoice"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                        </div>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="13" className="py-8">
+                        <Spinner />
                       </td>
                     </tr>
-                  ))}
+                  ) : filteredTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan="13" className="py-8 text-center text-gray-500">
+                        No transactions found.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTransactions.map((transaction, index) => (
+                      <tr
+                        key={transaction.id}
+                        className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                        }`}
+                      >
+                        <td className="py-4 px-4 font-medium text-gray-900">{index + 1}</td>
+                        <td className="py-4 px-4 font-medium text-gray-900">{transaction.customerName}</td>
+                        <td className="py-4 px-4">
+                          <Badge
+                            variant="secondary"
+                            className={
+                              transaction.itemPurchased === "Laptop"
+                                ? "bg-blue-50 text-blue-700"
+                                : transaction.itemPurchased === "Phone"
+                                  ? "bg-green-50 text-green-700"
+                                  : transaction.itemPurchased === "Dollar"
+                                    ? "bg-yellow-50 text-yellow-700"
+                                    : "bg-gray-50 text-gray-700"
+                            }
+                          >
+                            {transaction.itemPurchased}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4 text-gray-600">{formatDate(transaction.transactionDate)}</td>
+                        <td className="py-4 px-4 text-center text-gray-900">
+                          {transaction.itemPurchased === "Dollar"
+                            ? formatUsdCurrency(transaction.quantity)
+                            : transaction.quantity}
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono text-gray-900">
+                          {formatNgnCurrency(transaction.amountNGN)}
+                        </td>
+                        <td className="py-4 px-4 text-center text-gray-600">₦{transaction.exchangeRate}</td>
+                        <td className="py-4 px-4 text-right font-mono text-gray-900">
+                          {formatUsdCurrency(transaction.amountUSD)}
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono text-gray-600">
+                          {formatUsdCurrency(transaction.otherExpensesUSD)}
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono text-gray-600">
+                          {formatNgnCurrency(transaction.otherExpensesNGN)}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <Badge
+                            className={
+                              transaction.paymentStatus === "paid"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }
+                          >
+                            {formatStatus(transaction.paymentStatus)}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono font-bold text-gray-900">
+                          <div className="group relative">
+                            {formatNgnCurrency(transaction.totalNGN)}
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              USD: {formatUsdCurrency(transaction.totalUSD)}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditTransaction(transaction)}
+                              className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteTransaction(transaction)}
+                              className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleGenerateInvoice(transaction)}
+                              className="h-8 w-8 hover:bg-purple-50 hover:text-purple-600"
+                              title="Generate Invoice"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
