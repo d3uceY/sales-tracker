@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,83 +8,48 @@ import { Badge } from "@/components/ui/badge"
 import { Download, Search, Users, DollarSign, AlertCircle } from "lucide-react"
 import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatDate } from "../../helpers/date/formatDate"
-
-// Mock data for customer balances - in real app, this would come from API
-const mockCustomerBalances = [
-  {
-    id: 1,
-    customerName: "Adebayo Electronics",
-    lastTransactionDate: "2024-01-16",
-    totalTransactions: 5,
-    totalPurchased: 15420.5,
-    totalPaid: 12500.0,
-    outstandingBalance: 2920.5,
-    status: "active",
-  },
-  {
-    id: 2,
-    customerName: "Lagos Tech Hub",
-    lastTransactionDate: "2024-01-19",
-    totalTransactions: 8,
-    totalPurchased: 28750.75,
-    totalPaid: 28750.75,
-    outstandingBalance: 0.0,
-    status: "active",
-  },
-  {
-    id: 3,
-    customerName: "Kano Imports Ltd",
-    lastTransactionDate: "2024-01-21",
-    totalTransactions: 12,
-    totalPurchased: 45200.0,
-    totalPaid: 40000.0,
-    outstandingBalance: 5200.0,
-    status: "active",
-  },
-  {
-    id: 4,
-    customerName: "Abuja Gadgets",
-    lastTransactionDate: "2024-01-23",
-    totalTransactions: 3,
-    totalPurchased: 8950.25,
-    totalPaid: 8950.25,
-    outstandingBalance: 0.0,
-    status: "active",
-  },
-  {
-    id: 5,
-    customerName: "Port Harcourt Tech",
-    lastTransactionDate: "2024-01-26",
-    totalTransactions: 7,
-    totalPurchased: 18600.0,
-    totalPaid: 15000.0,
-    outstandingBalance: 3600.0,
-    status: "active",
-  },
-  {
-    id: 6,
-    customerName: "Computer Village Store",
-    lastTransactionDate: "2024-01-10",
-    totalTransactions: 2,
-    totalPurchased: 5500.0,
-    totalPaid: 3000.0,
-    outstandingBalance: 2500.0,
-    status: "inactive",
-  },
-]
+import { reportsApi } from "../../helpers/api/reports"
+import Spinner from "@/components/ui/spinner"
 
 export function CustomerBalanceReport({ onExportPDF, onExportExcel }) {
-  const [customers, setCustomers] = useState(mockCustomerBalances)
+  const [customers, setCustomers] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [summary, setSummary] = useState({})
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError("")
+    const fetchData = async () => {
+      try {
+        const params = statusFilter !== "all" ? { status: statusFilter } : {}
+        const res = await reportsApi.getCustomerBalances(params)
+        if (isMounted) {
+          setCustomers(res.data || [])
+          setSummary(res.summary || {})
+          setLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.response?.data?.message || err?.message || "Failed to load report.")
+          setLoading(false)
+        }
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [statusFilter])
 
   // Filter customers
-  const filteredCustomers = customers.filter((customer) => {
-    const matchesSearch = customer.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || customer.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      const matchesSearch = customer.customerName.toLowerCase().includes(searchTerm.toLowerCase())
+      return matchesSearch
+    })
+  }, [customers, searchTerm])
 
   // Calculate totals
   const totalOutstanding = filteredCustomers.reduce((sum, customer) => sum + customer.outstandingBalance, 0)
@@ -128,6 +93,13 @@ export function CustomerBalanceReport({ onExportPDF, onExportExcel }) {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  if (loading) {
+    return <div className="py-12 text-center"><Spinner /></div>;
+  }
+  if (error) {
+    return <div className="py-12 text-center text-red-500">{error}</div>
   }
 
   return (

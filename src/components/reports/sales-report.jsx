@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,54 +20,71 @@ import {
 import { Download, FileText } from "lucide-react"
 import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
-
-const salesData = [
-  { name: "Laptop", value: 15000000, usdValue: 9090.91, count: 25 },
-  { name: "Phone", value: 20000000, usdValue: 12121.21, count: 40 },
-  { name: "Dollar", value: 8000000, usdValue: 4848.48, count: 15 },
-  { name: "Other", value: 2250000, usdValue: 1363.64, count: 8 },
-]
-
-const monthlySales = [
-  { month: "Jan", ngn: 35000000, usd: 21212.12 },
-  { month: "Feb", ngn: 42000000, usd: 25454.55 },
-  { month: "Mar", ngn: 38000000, usd: 23030.3 },
-  { month: "Apr", ngn: 45250000, usd: 27424.24 },
-]
+import { reportsApi } from "../../helpers/api/reports"
+import Spinner from "@/components/ui/spinner"
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
 
-const recentSales = [
-  {
-    id: 1,
-    customer: "Adebayo Electronics",
-    item: "Laptop",
-    amount: 4500000,
-    usdAmount: 2727.27,
-    date: "2024-01-26",
-    status: "paid",
-  },
-  {
-    id: 2,
-    customer: "Lagos Tech Hub",
-    item: "Phone",
-    amount: 12000000,
-    usdAmount: 7272.73,
-    date: "2024-01-25",
-    status: "unpaid",
-  },
-  {
-    id: 3,
-    customer: "Kano Imports Ltd",
-    item: "Dollar",
-    amount: 8000000,
-    usdAmount: 4848.48,
-    date: "2024-01-24",
-    status: "paid",
-  },
-]
+const getDateRangeFromFilter = (dateFilter) => {
+  const now = new Date()
+  let startDate = null
+  let endDate = null
+  if (dateFilter === "today") {
+    startDate = endDate = now.toISOString().split("T")[0]
+  } else if (dateFilter === "this-week") {
+    const first = now.getDate() - now.getDay()
+    startDate = new Date(now.setDate(first)).toISOString().split("T")[0]
+    endDate = new Date().toISOString().split("T")[0]
+  } else if (dateFilter === "this-month") {
+    startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+    endDate = new Date().toISOString().split("T")[0]
+  }
+  return { startDate, endDate }
+}
 
 export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError("")
+    const fetchData = async () => {
+      try {
+        let params = {}
+        if (dateFilter && dateFilter !== "custom") {
+          params = getDateRangeFromFilter(dateFilter)
+        }
+        // TODO: handle custom range if needed
+        const res = await reportsApi.getSalesSummary(params)
+        if (isMounted) {
+          setData(res.data)
+          setLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.response?.data?.message || err?.message || "Failed to load report.")
+          setLoading(false)
+        }
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [dateFilter])
+
+  const salesData = useMemo(() => data?.salesData || [], [data])
+  const monthlySales = useMemo(() => data?.monthlySales || [], [data])
+  const recentSales = useMemo(() => data?.recentSales || [], [data])
+
+  if (loading) {
+    return <div className="py-12 text-center"><Spinner /></div>;
+  }
+  if (error) {
+    return <div className="py-12 text-center text-red-500">{error}</div>
+  }
+
   return (
     <div className="space-y-6">
       {/* Export Buttons */}
@@ -160,7 +178,7 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
               <tbody>
                 {salesData.map((item, index) => {
                   const totalRevenue = salesData.reduce((sum, item) => sum + item.value, 0)
-                  const percentage = ((item.value / totalRevenue) * 100).toFixed(1)
+                  const percentage = totalRevenue ? ((item.value / totalRevenue) * 100).toFixed(1) : 0
                   return (
                     <tr key={item.name} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-4 px-4 font-medium text-gray-900">{item.name}</td>
@@ -206,7 +224,7 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
                   <tr key={sale.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4 px-4 font-medium text-gray-900">{sale.customer}</td>
                     <td className="py-4 px-4 text-gray-600">{sale.item}</td>
-                    <td className="py-4 px-4 text-gray-600">{sale.date}</td>
+                    <td className="py-4 px-4 text-gray-600">{sale.date ? new Date(sale.date).toLocaleDateString() : "-"}</td>
                     <td className="py-4 px-4 text-right font-mono text-gray-900">{formatNgnCurrency(sale.amount)}</td>
                     <td className="py-4 px-4 text-right font-mono text-gray-900">
                       {formatUsdCurrency(sale.usdAmount)}

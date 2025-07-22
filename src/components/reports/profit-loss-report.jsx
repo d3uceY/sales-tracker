@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,69 +18,71 @@ import {
 import { Download, FileText, TrendingUp, TrendingDown } from "lucide-react"
 import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
+import { reportsApi } from "../../helpers/api/reports"
+import Spinner from "@/components/ui/spinner"
 
-const monthlyProfitLoss = [
-  {
-    month: "Jan",
-    income: 35000000,
-    expenses: 25000000,
-    profit: 10000000,
-    incomeUSD: 21212,
-    expensesUSD: 15152,
-    profitUSD: 6060,
-  },
-  {
-    month: "Feb",
-    income: 42000000,
-    expenses: 28000000,
-    profit: 14000000,
-    incomeUSD: 25455,
-    expensesUSD: 16970,
-    profitUSD: 8485,
-  },
-  {
-    month: "Mar",
-    income: 38000000,
-    expenses: 26000000,
-    profit: 12000000,
-    incomeUSD: 23030,
-    expensesUSD: 15758,
-    profitUSD: 7273,
-  },
-  {
-    month: "Apr",
-    income: 45250000,
-    expenses: 32180000,
-    profit: 13070000,
-    incomeUSD: 27424,
-    expensesUSD: 19503,
-    profitUSD: 7921,
-  },
-]
-
-const currentMonth = {
-  totalIncome: 45250000,
-  totalExpenses: 32180000,
-  netProfit: 13070000,
-  totalIncomeUSD: 27424,
-  totalExpensesUSD: 19503,
-  netProfitUSD: 7921,
-  profitMargin: 28.9,
-  previousMonth: {
-    netProfit: 12000000,
-    netProfitUSD: 7273,
-  },
+const getDateRangeFromFilter = (dateFilter) => {
+  const now = new Date()
+  let startDate = null
+  let endDate = null
+  if (dateFilter === "today") {
+    startDate = endDate = now.toISOString().split("T")[0]
+  } else if (dateFilter === "this-week") {
+    const first = now.getDate() - now.getDay()
+    startDate = new Date(now.setDate(first)).toISOString().split("T")[0]
+    endDate = new Date().toISOString().split("T")[0]
+  } else if (dateFilter === "this-month") {
+    startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
+    endDate = new Date().toISOString().split("T")[0]
+  }
+  return { startDate, endDate }
 }
 
-const expenseBreakdown = [
-  { category: "Vendor Purchases", amount: 28000000, usd: 16970, percentage: 87 },
-  { category: "Shipping & Logistics", amount: 2500000, usd: 1515, percentage: 8 },
-  { category: "Other Expenses", amount: 1680000, usd: 1018, percentage: 5 },
-]
-
 export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
-  const profitChange = currentMonth.netProfit - currentMonth.previousMonth.netProfit
-  const profitChangePercent = ((profitChange / currentMonth.previousMonth.netProfit) * 100).toFixed(1)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError("")
+    const fetchData = async () => {
+      try {
+        let params = {}
+        if (dateFilter && dateFilter !== "custom") {
+          params = getDateRangeFromFilter(dateFilter)
+        }
+        // TODO: handle custom range if needed
+        const res = await reportsApi.getProfitLoss(params)
+        if (isMounted) {
+          setData(res.data)
+          setLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.response?.data?.message || err?.message || "Failed to load report.")
+          setLoading(false)
+        }
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [dateFilter])
+
+  const monthlyProfitLoss = useMemo(() => data?.monthlyProfitLoss || [], [data])
+  const currentMonth = useMemo(() => data?.currentMonth || {}, [data])
+  const expenseBreakdown = useMemo(() => data?.expenseBreakdown || [], [data])
+
+  const profitChange = currentMonth.netProfit - (currentMonth.previousMonth?.netProfit || 0)
+  const profitChangePercent = currentMonth.previousMonth?.netProfit ? ((profitChange / currentMonth.previousMonth.netProfit) * 100).toFixed(1) : 0
+
+  if (loading) {
+    return <div className="py-12 text-center"><Spinner /></div>;
+  }
+  if (error) {
+    return <div className="py-12 text-center text-red-500">{error}</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -217,7 +220,7 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
               </thead>
               <tbody>
                 {monthlyProfitLoss.map((month) => {
-                  const margin = ((month.profit / month.income) * 100).toFixed(1)
+                  const margin = month.income ? ((month.profit / month.income) * 100).toFixed(1) : 0
                   return (
                     <tr key={month.month} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-4 px-4 font-medium text-gray-900">{month.month}</td>

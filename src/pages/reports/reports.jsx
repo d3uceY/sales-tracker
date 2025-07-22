@@ -76,13 +76,15 @@ export default function Reports() {
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 truncate">Total Revenue</p>
+                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
+                  Total Revenue
+                  <span className="inline-flex p-1 bg-green-50 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                  </span>
+                </p>
                 <p className="text-xl lg:text-2xl font-bold text-green-600">₦45,250,000</p>
                 <p className="text-xs text-gray-500">$27,424 USD</p>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg flex-shrink-0">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -90,13 +92,15 @@ export default function Reports() {
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 truncate">Total Expenses</p>
+                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
+                  Total Expenses
+                  <span className="inline-flex p-1 bg-red-50 rounded-lg">
+                    <DollarSign className="h-5 w-5 text-red-600" />
+                  </span>
+                </p>
                 <p className="text-xl lg:text-2xl font-bold text-red-600">₦32,180,000</p>
                 <p className="text-xs text-gray-500">$19,503 USD</p>
               </div>
-              <div className="p-3 bg-red-50 rounded-lg flex-shrink-0">
-                <DollarSign className="h-6 w-6 text-red-600" />
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -104,13 +108,15 @@ export default function Reports() {
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 truncate">Net Profit</p>
+                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
+                  Net Profit
+                  <span className="inline-flex p-1 bg-blue-50 rounded-lg">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                  </span>
+                </p>
                 <p className="text-xl lg:text-2xl font-bold text-blue-600">₦13,070,000</p>
                 <p className="text-xs text-gray-500">$7,921 USD</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg flex-shrink-0">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -118,12 +124,14 @@ export default function Reports() {
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 truncate">Profit Margin</p>
+                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
+                  Profit Margin
+                  <span className="inline-flex p-1 bg-purple-50 rounded-lg">
+                    <FileText className="h-5 w-5 text-purple-600" />
+                  </span>
+                </p>
                 <p className="text-xl lg:text-2xl font-bold text-purple-600">28.9%</p>
                 <p className="text-xs text-green-500">+2.3% vs last month</p>
-              </div>
-              <div className="p-3 bg-purple-50 rounded-lg flex-shrink-0">
-                <FileText className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </CardContent>

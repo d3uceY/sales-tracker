@@ -1,42 +1,51 @@
 "use client"
 
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Download, FileText, TrendingUp, TrendingDown } from "lucide-react"
-
-const exchangeRateData = [
-  { date: "2024-01-01", rate: 1620, buyRate: 1615, sellRate: 1625 },
-  { date: "2024-01-05", rate: 1635, buyRate: 1630, sellRate: 1640 },
-  { date: "2024-01-10", rate: 1642, buyRate: 1637, sellRate: 1647 },
-  { date: "2024-01-15", rate: 1650, buyRate: 1645, sellRate: 1655 },
-  { date: "2024-01-20", rate: 1658, buyRate: 1653, sellRate: 1663 },
-  { date: "2024-01-25", rate: 1665, buyRate: 1660, sellRate: 1670 },
-  { date: "2024-01-30", rate: 1672, buyRate: 1667, sellRate: 1677 },
-]
-
-const rateAnalysis = {
-  currentRate: 1672,
-  previousRate: 1620,
-  change: 52,
-  changePercent: 3.21,
-  highestRate: 1677,
-  lowestRate: 1615,
-  averageRate: 1649,
-  volatility: "Moderate",
-}
-
-const profitMarginAnalysis = [
-  { rate: 1620, margin: 25.5, profit: 8500000 },
-  { rate: 1635, margin: 26.2, profit: 9200000 },
-  { rate: 1642, margin: 26.8, profit: 9800000 },
-  { rate: 1650, margin: 27.1, profit: 10200000 },
-  { rate: 1658, margin: 27.5, profit: 10800000 },
-  { rate: 1665, margin: 27.8, profit: 11200000 },
-  { rate: 1672, margin: 28.1, profit: 11600000 },
-]
+import { reportsApi } from "../../helpers/api/reports"
+import Spinner from "@/components/ui/spinner"
 
 export function ExchangeRateReport({ onExportPDF, onExportExcel }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError("")
+    const fetchData = async () => {
+      try {
+        const res = await reportsApi.getExchangeRate()
+        if (isMounted) {
+          setData(res.data)
+          setLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.response?.data?.message || err?.message || "Failed to load report.")
+          setLoading(false)
+        }
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [])
+
+  const exchangeRateData = useMemo(() => data?.exchangeRateData || [], [data])
+  const rateAnalysis = useMemo(() => data?.rateAnalysis || {}, [data])
+  const profitMarginAnalysis = useMemo(() => data?.profitMarginAnalysis || [], [data])
+
+  if (loading) {
+    return <div className="py-12 text-center"><Spinner /></div>;
+  }
+  if (error) {
+    return <div className="py-12 text-center text-red-500">{error}</div>
+  }
+
   return (
     <div className="space-y-6">
       {/* Export Buttons */}

@@ -1,48 +1,8 @@
+import { useEffect, useState } from "react"
+import { dashboardApi } from "@/helpers/api/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-
-const recentInvoices = [
-  {
-    id: "INV-001",
-    customer: "Adebayo Electronics",
-    issueDate: "2024-01-15",
-    dueDate: "2024-02-15",
-    amount: 2500000,
-    status: "paid",
-  },
-  {
-    id: "INV-002",
-    customer: "Lagos Tech Hub",
-    issueDate: "2024-01-14",
-    dueDate: "2024-02-14",
-    amount: 1800000,
-    status: "pending",
-  },
-  {
-    id: "INV-003",
-    customer: "Kano Imports Ltd",
-    issueDate: "2024-01-13",
-    dueDate: "2024-02-13",
-    amount: 3200000,
-    status: "overdue",
-  },
-  {
-    id: "INV-004",
-    customer: "Abuja Gadgets",
-    issueDate: "2024-01-12",
-    dueDate: "2024-02-12",
-    amount: 950000,
-    status: "paid",
-  },
-  {
-    id: "INV-005",
-    customer: "Port Harcourt Tech",
-    issueDate: "2024-01-11",
-    dueDate: "2024-02-11",
-    amount: 1650000,
-    status: "pending",
-  },
-]
 
 const statusColors = {
   paid: "bg-green-100 text-green-800",
@@ -51,6 +11,66 @@ const statusColors = {
 }
 
 export function RecentInvoices() {
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    setLoading(true)
+    dashboardApi.getRecentInvoices()
+      .then((res) => {
+        if (mounted) {
+          setData(res)
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        if (mounted) {
+          setError("Failed to load recent invoices.")
+          setLoading(false)
+        }
+      })
+    return () => { mounted = false }
+  }, [])
+
+  if (loading) {
+    // Show a card skeleton for the table
+    return (
+      <Card className="mb-8">
+        <CardHeader>
+          <Skeleton className="h-6 w-40 mb-2" />
+          <Skeleton className="h-4 w-32" />
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  {[...Array(5)].map((_, i) => (
+                    <th key={i} className="py-3 px-2"><Skeleton className="h-4 w-20" /></th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i}>
+                    {[...Array(5)].map((_, j) => (
+                      <td key={j} className="py-3 px-2"><Skeleton className="h-5 w-24" /></td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+  if (error) {
+    return <div className="h-24 flex items-center justify-center text-red-600">{error}</div>
+  }
+
   return (
     <Card className="mb-8">
       <CardHeader>
@@ -70,15 +90,15 @@ export function RecentInvoices() {
               </tr>
             </thead>
             <tbody>
-              {recentInvoices.map((invoice) => (
+              {data.map((invoice) => (
                 <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-2 font-medium text-gray-900">{invoice.customer}</td>
                   <td className="py-3 px-2 text-gray-600">{invoice.issueDate}</td>
                   <td className="py-3 px-2 text-gray-600">{invoice.dueDate}</td>
-                  <td className="py-3 px-2 text-right font-mono text-gray-900">₦{invoice.amount.toLocaleString()}</td>
+                  <td className="py-3 px-2 text-right font-mono text-gray-900"> ₦{invoice.amount.toLocaleString()}</td>
                   <td className="py-3 px-2 text-center">
-                    <Badge className={statusColors[invoice.status]}>
-                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                    <Badge className={statusColors[invoice.status] || "bg-gray-100 text-gray-800"}>
+                      {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}
                     </Badge>
                   </td>
                 </tr>

@@ -1,77 +1,43 @@
+import { useEffect, useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
 import { formatDate } from "../../helpers/date/formatDate"
-
-const unpaidVendorBills = [
-  {
-    id: 1,
-    vendor: "Amazon",
-    item: "Phone",
-    amount: 8000,
-    ngn: 13200000,
-    dueDate: "2024-02-15",
-    daysOverdue: 5,
-    status: "overdue",
-  },
-  {
-    id: 2,
-    vendor: "B&H Photo",
-    item: "Other",
-    amount: 1200,
-    ngn: 1986000,
-    dueDate: "2024-02-20",
-    daysOverdue: 0,
-    status: "due",
-  },
-  {
-    id: 3,
-    vendor: "Newegg",
-    item: "Laptop",
-    amount: 3500,
-    ngn: 5775000,
-    dueDate: "2024-02-25",
-    daysOverdue: 0,
-    status: "upcoming",
-  },
-]
-
-const unpaidCustomerPayments = [
-  {
-    id: 1,
-    customer: "Lagos Tech Hub",
-    item: "Phone",
-    amount: 12000000,
-    usd: 7272.73,
-    dueDate: "2024-02-10",
-    daysOverdue: 10,
-    status: "overdue",
-  },
-  {
-    id: 2,
-    customer: "Port Harcourt Tech",
-    item: "Other",
-    amount: 2500000,
-    usd: 1515.15,
-    dueDate: "2024-02-18",
-    daysOverdue: 2,
-    status: "overdue",
-  },
-  {
-    id: 3,
-    customer: "Kano Electronics",
-    item: "Laptop",
-    amount: 6000000,
-    usd: 3636.36,
-    dueDate: "2024-02-22",
-    daysOverdue: 0,
-    status: "due",
-  },
-]
+import { reportsApi } from "../../helpers/api/reports"
+import Spinner from "@/components/ui/spinner"
 
 export function OutstandingPayments() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    let isMounted = true
+    setLoading(true)
+    setError("")
+    const fetchData = async () => {
+      try {
+        const res = await reportsApi.getOutstandingPayments()
+        if (isMounted) {
+          setData(res.data)
+          setLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.response?.data?.message || err?.message || "Failed to load report.")
+          setLoading(false)
+        }
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [])
+
+  const unpaidVendorBills = useMemo(() => data?.unpaidVendorBills || [], [data])
+  const unpaidCustomerPayments = useMemo(() => data?.unpaidCustomerPayments || [], [data])
+
   const getStatusBadge = (status, daysOverdue) => {
     if (status === "overdue") {
       return <Badge className="bg-red-100 text-red-800">Overdue ({daysOverdue} days)</Badge>
@@ -80,6 +46,13 @@ export function OutstandingPayments() {
     } else {
       return <Badge className="bg-blue-100 text-blue-800">Upcoming</Badge>
     }
+  }
+
+  if (loading) {
+    return <div className="py-12 text-center"><Spinner /></div>;
+  }
+  if (error) {
+    return <div className="py-12 text-center text-red-500">{error}</div>
   }
 
   return (
@@ -92,7 +65,7 @@ export function OutstandingPayments() {
               <p className="text-sm font-medium text-gray-600">Unpaid Vendor Bills</p>
               <p className="text-2xl font-bold text-red-600">{unpaidVendorBills.length}</p>
               <p className="text-xs text-gray-500">
-                {formatUsdCurrency(unpaidVendorBills.reduce((sum, bill) => sum + bill.amount, 0))}
+                {formatUsdCurrency(unpaidVendorBills.reduce((sum, bill) => sum + (bill.amount || 0), 0))}
               </p>
             </div>
           </CardContent>
@@ -103,7 +76,7 @@ export function OutstandingPayments() {
               <p className="text-sm font-medium text-gray-600">Unpaid Customer Sales</p>
               <p className="text-2xl font-bold text-orange-600">{unpaidCustomerPayments.length}</p>
               <p className="text-xs text-gray-500">
-                {formatNgnCurrency(unpaidCustomerPayments.reduce((sum, payment) => sum + payment.amount, 0))}
+                {formatNgnCurrency(unpaidCustomerPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0))}
               </p>
             </div>
           </CardContent>
