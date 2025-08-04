@@ -20,11 +20,13 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
     customItemName: "",
     transactionDate: "",
     quantity: "",
-    amountUSD: "",
-    exchangeRate: "1650",
+    priceNGN: "",
+    exchangeRate: "1500",
+    priceUSD: "",
     otherExpensesUSD: "0",
     otherExpensesNGN: "0",
     paymentStatus: "unpaid",
+    amountPaid: "",
   })
   const [errors, setErrors] = useState({})
   const [vendors, setVendors] = useState([])
@@ -54,11 +56,13 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
         customItemName: transaction.itemPurchased === "Other" ? "" : transaction.itemPurchased,
         transactionDate: transaction.transactionDate,
         quantity: transaction.quantity.toString(),
-        amountUSD: transaction.amountUSD.toString(),
-        exchangeRate: transaction.exchangeRate.toString(),
-        otherExpensesUSD: transaction.otherExpensesUSD.toString(),
-        otherExpensesNGN: transaction.otherExpensesNGN.toString(),
+        priceNGN: transaction.priceNGN ? transaction.priceNGN.toString() : "",
+        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : "1500",
+        priceUSD: transaction.priceUSD ? transaction.priceUSD.toString() : "",
+        otherExpensesUSD: transaction.otherExpensesUSD ? transaction.otherExpensesUSD.toString() : "0",
+        otherExpensesNGN: transaction.otherExpensesNGN ? transaction.otherExpensesNGN.toString() : "0",
         paymentStatus: transaction.paymentStatus,
+        amountPaid: transaction.amountPaid ? transaction.amountPaid.toString() : "",
       })
     } else {
       setFormData({
@@ -68,21 +72,41 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
         customItemName: "",
         transactionDate: new Date().toISOString().split("T")[0],
         quantity: "",
-        amountUSD: "",
-        exchangeRate: "1650",
+        priceNGN: "",
+        exchangeRate: "1500",
+        priceUSD: "",
         otherExpensesUSD: "0",
         otherExpensesNGN: "0",
         paymentStatus: "unpaid",
+        amountPaid: "",
       })
     }
     setErrors({})
   }, [transaction, isOpen])
 
-  // Auto-calculate NGN amounts
-  const amountNGN = (Number.parseFloat(formData.amountUSD) || 0) * (Number.parseFloat(formData.exchangeRate) || 0)
-  const otherExpensesNGN = (Number.parseFloat(formData.otherExpensesUSD) || 0) * (Number.parseFloat(formData.exchangeRate) || 0)
-  const totalUSD = (Number.parseFloat(formData.amountUSD) || 0) + (Number.parseFloat(formData.otherExpensesUSD) || 0)
-  const totalNGN = amountNGN + otherExpensesNGN
+  // Auto-calculate priceUSD when priceNGN and exchangeRate change
+  useEffect(() => {
+    if (formData.priceNGN && formData.exchangeRate) {
+      const ngn = parseFloat(formData.priceNGN) || 0;
+      const rate = parseFloat(formData.exchangeRate) || 1;
+      const usd = ngn / rate;
+      setFormData((prev) => ({ ...prev, priceUSD: usd ? usd.toFixed(2) : "" }));
+    }
+  }, [formData.priceNGN, formData.exchangeRate]);
+
+  // Auto-calculate otherExpensesNGN when otherExpensesUSD and exchangeRate change
+  useEffect(() => {
+    if (formData.otherExpensesUSD && formData.exchangeRate) {
+      const usd = parseFloat(formData.otherExpensesUSD) || 0;
+      const rate = parseFloat(formData.exchangeRate) || 1;
+      const ngn = usd * rate;
+      setFormData((prev) => ({ ...prev, otherExpensesNGN: ngn ? ngn.toFixed(2) : "0" }));
+    }
+  }, [formData.otherExpensesUSD, formData.exchangeRate]);
+
+  // Calculate totals based on new structure
+  const totalNGN = (Number.parseFloat(formData.priceNGN) || 0) + (Number.parseFloat(formData.otherExpensesNGN) || 0)
+  const totalUSD = (Number.parseFloat(formData.priceUSD) || 0) + (Number.parseFloat(formData.otherExpensesUSD) || 0)
 
   const validateForm = () => {
     const newErrors = {}
@@ -95,8 +119,8 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
     if (!formData.transactionDate) newErrors.transactionDate = "Transaction date is required"
     if (!formData.quantity || Number.parseFloat(formData.quantity) <= 0)
       newErrors.quantity = "Valid quantity is required"
-    if (!formData.amountUSD || Number.parseFloat(formData.amountUSD) <= 0)
-      newErrors.amountUSD = "Valid amount is required"
+    if (!formData.priceNGN || Number.parseFloat(formData.priceNGN) <= 0)
+      newErrors.priceNGN = "Valid price in NGN is required"
     if (!formData.exchangeRate || Number.parseFloat(formData.exchangeRate) <= 0)
       newErrors.exchangeRate = "Valid exchange rate is required"
 
@@ -123,19 +147,23 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
         vendorId = selected?.id
       }
       if (!vendorId) throw new Error("Vendor not found or created.")
+      
+      const amountPaidValue = Number.parseFloat(formData.amountPaid) || totalUSD;
+      
       // Prepare transaction payload
       const transactionData = {
         itemPurchased: formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased,
         transactionDate: formData.transactionDate,
         quantity: Number.parseFloat(formData.quantity),
-        amountUSD: Number.parseFloat(formData.amountUSD),
+        priceNGN: Number.parseFloat(formData.priceNGN),
         exchangeRate: Number.parseFloat(formData.exchangeRate),
-        amountNGN: amountNGN,
+        priceUSD: Number.parseFloat(formData.priceUSD),
         otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
-        otherExpensesNGN: otherExpensesNGN,
-        paymentStatus: formData.paymentStatus,
-        totalUSD: totalUSD,
+        otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
+        paymentStatus: amountPaidValue < totalUSD ? "partial" : "paid",
         totalNGN: totalNGN,
+        totalUSD: totalUSD,
+        amountPaid: amountPaidValue,
       }
       // Call create transaction API
       const { createVendorTransaction } = await import("@/helpers/api/transaction")
@@ -262,19 +290,19 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
             </div>
 
             <div>
-              <Label htmlFor="amountUSD" className="text-sm font-medium text-gray-700">
-                Amount (USD) *
+              <Label htmlFor="priceNGN" className="text-sm font-medium text-gray-700">
+                Price (NGN) *
               </Label>
               <Input
-                id="amountUSD"
+                id="priceNGN"
                 type="number"
                 step="0.01"
-                value={formData.amountUSD}
-                onChange={(e) => handleChange("amountUSD", e.target.value)}
+                value={formData.priceNGN}
+                onChange={(e) => handleChange("priceNGN", e.target.value)}
                 placeholder="0.00"
-                className={`mt-1 ${errors.amountUSD ? "border-red-500" : ""}`}
+                className={`mt-1 ${errors.priceNGN ? "border-red-500" : ""}`}
               />
-              {errors.amountUSD && <p className="mt-1 text-sm text-red-600">{errors.amountUSD}</p>}
+              {errors.priceNGN && <p className="mt-1 text-sm text-red-600">{errors.priceNGN}</p>}
             </div>
 
             <div>
@@ -287,10 +315,43 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
                 step="0.01"
                 value={formData.exchangeRate}
                 onChange={(e) => handleChange("exchangeRate", e.target.value)}
-                placeholder="1650.00"
+                placeholder="1500.00"
                 className={`mt-1 ${errors.exchangeRate ? "border-red-500" : ""}`}
               />
               {errors.exchangeRate && <p className="mt-1 text-sm text-red-600">{errors.exchangeRate}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="priceUSD" className="text-sm font-medium text-gray-700">
+                Price (USD)
+              </Label>
+              <Input
+                id="priceUSD"
+                type="number"
+                step="0.01"
+                value={formData.priceUSD}
+                readOnly
+                placeholder="0.00"
+                className="mt-1 bg-gray-100 cursor-not-allowed"
+                tabIndex={-1}
+              />
+              <p className="text-xs text-gray-500 mt-1">Auto-calculated from NGN price</p>
+            </div>
+
+            <div>
+              <Label htmlFor="amountPaid" className="text-sm font-medium text-gray-700">
+                Amount Paid (USD)
+              </Label>
+              <Input
+                id="amountPaid"
+                type="number"
+                step="0.01"
+                value={formData.amountPaid || totalUSD.toFixed(2)}
+                onChange={(e) => handleChange("amountPaid", e.target.value)}
+                placeholder="0.00"
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">Leave blank to mark as fully paid</p>
             </div>
 
             <div>
@@ -316,11 +377,10 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
                 id="otherExpensesNGN"
                 type="number"
                 step="0.01"
-                value={otherExpensesNGN.toFixed(2)}
-                readOnly
+                value={formData.otherExpensesNGN}
+                onChange={(e) => handleChange("otherExpensesNGN", e.target.value)}
                 placeholder="0.00"
-                className="mt-1 bg-gray-100 cursor-not-allowed"
-                tabIndex={-1}
+                className="mt-1"
               />
             </div>
 
@@ -334,6 +394,7 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
                   <SelectItem value="unpaid">Unpaid</SelectItem>
                 </SelectContent>
               </Select>
@@ -345,16 +406,16 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
             <h3 className="text-sm font-medium text-gray-700 mb-3">Calculated Values</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="text-gray-600">Amount (NGN):</span>
-                <p className="font-mono font-medium">₦{amountNGN.toLocaleString()}</p>
-              </div>
-              <div>
-                <span className="text-gray-600">Total (USD):</span>
-                <p className="font-mono font-medium">${totalUSD.toFixed(2)}</p>
+                <span className="text-gray-600">Price (USD):</span>
+                <p className="font-mono font-medium">${formData.priceUSD || "0.00"}</p>
               </div>
               <div>
                 <span className="text-gray-600">Total (NGN):</span>
                 <p className="font-mono font-medium">₦{totalNGN.toLocaleString()}</p>
+              </div>
+              <div>
+                <span className="text-gray-600">Total (USD):</span>
+                <p className="font-mono font-medium">${totalUSD.toFixed(2)}</p>
               </div>
             </div>
           </div>

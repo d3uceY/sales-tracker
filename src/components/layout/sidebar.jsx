@@ -18,12 +18,12 @@ import { useAuth } from "../../context/auth-context"
 
 const menuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Role", href: "/roles", icon: UserCheck },
-  { name: "User", href: "/users", icon: Users },
-  { name: "Vendor", href: "/vendors", icon: Building2 },
-  { name: "Customer", href: "/customers", icon: Users2 },
-  { name: "Report", href: "/reports", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Role Management", href: "/roles", icon: UserCheck },
+  { name: "User Management", href: "/users", icon: Users },
+  { name: "Vendor Transaction", href: "/vendors", icon: Building2 },
+  { name: "Customer Transaction", href: "/customers", icon: Users2 },
+  { name: "Reports Analytics", href: "/reports", icon: FileText },
+  { name: "Settings & Preferences", href: "/settings", icon: Settings },
 ]
 
 export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, setIsMobileMenuOpen }) {

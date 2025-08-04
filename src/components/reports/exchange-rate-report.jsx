@@ -120,7 +120,7 @@ export function ExchangeRateReport({ onExportPDF, onExportExcel }) {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid gap-6">
         {/* Exchange Rate Trend */}
         <Card>
           <CardHeader>
@@ -157,52 +157,6 @@ export function ExchangeRateReport({ onExportPDF, onExportExcel }) {
                     strokeWidth={2}
                     name="Sell Rate"
                     strokeDasharray="5 5"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Profit Margin vs Exchange Rate */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profit Margin vs Exchange Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={profitMarginAnalysis}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="rate" tickFormatter={(value) => `₦${value}`} />
-                  <YAxis yAxisId="left" orientation="left" tickFormatter={(value) => `${value}%`} />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tickFormatter={(value) => `₦${(value / 1000000).toFixed(0)}M`}
-                  />
-                  <Tooltip
-                    formatter={(value, name) => [
-                      name === "margin" ? `${value}%` : `₦${(value / 1000000).toFixed(1)}M`,
-                      name === "margin" ? "Profit Margin" : "Profit Amount",
-                    ]}
-                  />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="margin"
-                    stroke="#8B5CF6"
-                    strokeWidth={3}
-                    name="Profit Margin %"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="profit"
-                    stroke="#F59E0B"
-                    strokeWidth={2}
-                    name="Profit Amount"
                   />
                 </LineChart>
               </ResponsiveContainer>

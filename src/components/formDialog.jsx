@@ -30,11 +30,11 @@ const formSchema = z.object({
   customer: z.string().min(1, "Customer is required"),
   newCustomerName: z.string().optional(),
   transactionDate: z.string().min(1, "Transaction date is required"),
-  amountUSD: z.number().min(0.01, "Amount must be greater than 0"),
-  exchangeRateNGN: z.number().min(0.01, "Exchange rate must be greater than 0"),
-  amountNGN: z.number().optional(), // Calculated field
-  otherExpendituresUSD: z.number().optional().default(0),
-  otherExpendituresNGN: z.number().optional(), // Calculated field
+  priceNGN: z.number().min(0.01, "Price in NGN must be greater than 0"),
+  exchangeRate: z.number().min(0.01, "Exchange rate must be greater than 0"),
+  priceUSD: z.number().optional(), // Calculated field
+  otherExpensesUSD: z.number().optional().default(0),
+  otherExpensesNGN: z.number().optional(), // Calculated field
 });
 
 
@@ -59,48 +59,48 @@ export default function TransactionFormDialog() {
       customer: "",
       newCustomerName: "",
       transactionDate: new Date().toISOString().split('T')[0],
-      amountUSD: 0,
-      exchangeRateNGN: 1650, 
-      amountNGN: 0,
-      otherExpendituresUSD: 0,
-      otherExpendituresNGN: 0,
+      priceNGN: 0,
+      exchangeRate: 1500, 
+      priceUSD: 0,
+      otherExpensesUSD: 0,
+      otherExpensesNGN: 0,
     },
   });
 
   // --- Calculations and Form Logic ---
 
-  const amountUSD = form.watch("amountUSD");
-  const otherExpendituresUSD = form.watch("otherExpendituresUSD");
-  const exchangeRate = form.watch("exchangeRateNGN");
+  const priceNGN = form.watch("priceNGN");
+  const otherExpensesUSD = form.watch("otherExpensesUSD");
+  const exchangeRate = form.watch("exchangeRate");
 
   useEffect(() => {
-    const amountNGN = (amountUSD || 0) * (exchangeRate || 0);
-    form.setValue('amountNGN', Number(amountNGN.toFixed(2)));
-  }, [amountUSD, exchangeRate, form.setValue]);
+    const priceUSD = (priceNGN || 0) / (exchangeRate || 1);
+    form.setValue('priceUSD', Number(priceUSD.toFixed(2)));
+  }, [priceNGN, exchangeRate, form.setValue]);
 
   useEffect(() => {
-    const otherExpNGN = (otherExpendituresUSD || 0) * (exchangeRate || 0);
-    form.setValue('otherExpendituresNGN', Number(otherExpNGN.toFixed(2)));
-  }, [otherExpendituresUSD, exchangeRate, form.setValue]);
+    const otherExpNGN = (otherExpensesUSD || 0) * (exchangeRate || 0);
+    form.setValue('otherExpensesNGN', Number(otherExpNGN.toFixed(2)));
+  }, [otherExpensesUSD, exchangeRate, form.setValue]);
 
-  const amountNGN = form.watch("amountNGN", 0);
-  const otherExpendituresNGN = form.watch("otherExpendituresNGN", 0);
+  const priceUSD = form.watch("priceUSD", 0);
+  const otherExpensesNGN = form.watch("otherExpensesNGN", 0);
 
-  const totalAmountUSD = (amountUSD || 0) + (otherExpendituresUSD || 0);
-  const totalAmountNGN = (amountNGN || 0) + (otherExpendituresNGN || 0);
+  const totalUSD = (priceUSD || 0) + (otherExpensesUSD || 0);
+  const totalNGN = (priceNGN || 0) + (otherExpensesNGN || 0);
 
   const onSubmit = (data) => {
     const payload = {
-      item: data.item,
+      itemPurchased: data.item,
       customer: data.customer,
       transactionDate: data.transactionDate,
-      amountUSD: data.amountUSD,
-      exchangeRateNGN: data.exchangeRateNGN,
-      amountNGN: data.amountNGN || 0, 
-      otherExpendituresUSD: data.otherExpendituresUSD || 0,
-      otherExpendituresNGN: data.otherExpendituresNGN || 0,
-      totalAmountUSD: totalAmountUSD,
-      totalAmountNGN: totalAmountNGN,
+      priceNGN: data.priceNGN,
+      exchangeRate: data.exchangeRate,
+      priceUSD: data.priceUSD || 0, 
+      otherExpensesUSD: data.otherExpensesUSD || 0,
+      otherExpensesNGN: data.otherExpensesNGN || 0,
+      totalUSD: totalUSD,
+      totalNGN: totalNGN,
     };
 
     postTransaction(payload)
@@ -213,67 +213,67 @@ export default function TransactionFormDialog() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Amount in USD */}
+            {/* Price in NGN */}
             <div className="space-y-2">
-              <Label htmlFor="amountUSD">Amount (USD)</Label>
+              <Label htmlFor="priceNGN">Price (NGN)</Label>
               <Input
-                id="amountUSD"
+                id="priceNGN"
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                {...form.register("amountUSD", { valueAsNumber: true })}
+                {...form.register("priceNGN", { valueAsNumber: true })}
               />
-              {form.formState.errors.amountUSD && (
-                <p className="text-sm text-red-500">{form.formState.errors.amountUSD.message}</p>
+              {form.formState.errors.priceNGN && (
+                <p className="text-sm text-red-500">{form.formState.errors.priceNGN.message}</p>
               )}
             </div>
 
             {/* Exchange Rate */}
             <div className="space-y-2">
-              <Label htmlFor="exchangeRateNGN">Exchange Rate (USD to NGN)</Label>
+              <Label htmlFor="exchangeRate">Exchange Rate (USD to NGN)</Label>
               <Input
-                id="exchangeRateNGN"
+                id="exchangeRate"
                 type="number"
                 step="0.01"
-                placeholder="1650.00"
-                {...form.register("exchangeRateNGN", { valueAsNumber: true })}
+                placeholder="1500.00"
+                {...form.register("exchangeRate", { valueAsNumber: true })}
               />
-              {form.formState.errors.exchangeRateNGN && (
-                <p className="text-sm text-red-500">{form.formState.errors.exchangeRateNGN.message}</p>
-              )}
+                              {form.formState.errors.exchangeRate && (
+                  <p className="text-sm text-red-500">{form.formState.errors.exchangeRate.message}</p>
+                )}
             </div>
 
-            {/* Other Expenditures USD */}
+            {/* Price in USD (Auto-calculated) */}
             <div className="space-y-2">
-              <Label htmlFor="otherExpendituresUSD">Other Expenditures (USD)</Label>
+              <Label htmlFor="priceUSD" className="text-gray-500">Price (USD)</Label>
               <Input
-                id="otherExpendituresUSD"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                {...form.register("otherExpendituresUSD", { valueAsNumber: true })}
-              />
-            </div>
-            
-            {/* Amount in NGN (Auto-calculated) - Grouped with USD amount */}
-            <div className="space-y-2">
-              <Label htmlFor="amountNGN" className="text-gray-500">Amount (NGN)</Label>
-              <Input
-                id="amountNGN"
+                id="priceUSD"
                 type="text"
-                value={`₦${(amountNGN || 0).toLocaleString('en-NG')}`}
+                value={`$${(priceUSD || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 readOnly
                 className="bg-gray-100 border-gray-300"
               />
             </div>
 
-            {/* Other Expenditures NGN (Auto-calculated) - Grouped with USD expenditure */}
+            {/* Other Expenses USD */}
             <div className="space-y-2">
-                <Label htmlFor="otherExpendituresNGN" className="text-gray-500">Other Expenditures (NGN)</Label>
+              <Label htmlFor="otherExpensesUSD">Other Expenses (USD)</Label>
+              <Input
+                id="otherExpensesUSD"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                {...form.register("otherExpensesUSD", { valueAsNumber: true })}
+              />
+            </div>
+
+            {/* Other Expenses NGN (Auto-calculated) */}
+            <div className="space-y-2">
+                <Label htmlFor="otherExpensesNGN" className="text-gray-500">Other Expenses (NGN)</Label>
                 <Input
-                    id="otherExpendituresNGN"
+                    id="otherExpensesNGN"
                     type="text"
-                    value={`₦${(otherExpendituresNGN || 0).toLocaleString('en-NG')}`}
+                    value={`₦${(otherExpensesNGN || 0).toLocaleString('en-NG')}`}
                     readOnly
                     className="bg-gray-100 border-gray-300"
                 />
@@ -290,13 +290,13 @@ export default function TransactionFormDialog() {
                <div className="text-center sm:text-left">
                   <p className="text-sm text-blue-600">Total in USD</p>
                   <p className="text-2xl font-bold text-blue-700">
-                    ${totalAmountUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${totalUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                </div>
                <div className="text-center sm:text-left">
                   <p className="text-sm text-blue-600">Total in NGN</p>
                   <p className="text-2xl font-bold text-blue-700">
-                    ₦{totalAmountNGN.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₦{totalNGN.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                </div>
             </CardContent>

@@ -32,8 +32,12 @@ export default function HistoryTable() {
                             <th scope="col" className="px-6 py-4">Date</th>
                             <th scope="col" className="px-6 py-4">Customer</th>
                             <th scope="col" className="px-6 py-4">Item</th>
+                            <th scope="col" className="px-6 py-4 text-right">Quantity</th>
+                            <th scope="col" className="px-6 py-4 text-right">Price (USD)</th>
+                            <th scope="col" className="px-6 py-4 text-right">Price (NGN)</th>
                             <th scope="col" className="px-6 py-4 text-right">Total (USD)</th>
                             <th scope="col" className="px-6 py-4 text-right">Total (NGN)</th>
+                            <th scope="col" className="px-6 py-4 text-center">Status</th>
                             <th scope="col" className="px-6 py-4 text-center">Actions</th>
                         </tr>
                     </thead>
@@ -41,10 +45,24 @@ export default function HistoryTable() {
                         {transactions.map((transaction) => (
                             <tr key={transaction.id} className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors duration-200">
                                 <td className="px-6 py-4 font-medium whitespace-nowrap">{formatDate(transaction.transactionDate)}</td>
-                                <td className="px-6 py-4">{transaction.customer}</td>
-                                <td className="px-6 py-4">{transaction.item}</td>
-                                <td className="px-6 py-4 text-right font-mono text-cyan-400">{formatUsdCurrency(transaction.totalAmountUSD)}</td>
-                                <td className="px-6 py-4 text-right font-mono text-emerald-400">{formatNgnCurrency(transaction.totalAmountNGN)}</td>
+                                <td className="px-6 py-4">{transaction.customerName || transaction.customer}</td>
+                                <td className="px-6 py-4">{transaction.itemPurchased || transaction.item}</td>
+                                <td className="px-6 py-4 text-right font-mono">{transaction.quantity}</td>
+                                <td className="px-6 py-4 text-right font-mono text-blue-400">{formatUsdCurrency(transaction.priceUSD || 0)}</td>
+                                <td className="px-6 py-4 text-right font-mono text-yellow-400">{formatNgnCurrency(transaction.priceNGN || 0)}</td>
+                                <td className="px-6 py-4 text-right font-mono text-cyan-400">{formatUsdCurrency(transaction.totalUSD || transaction.totalAmountUSD)}</td>
+                                <td className="px-6 py-4 text-right font-mono text-emerald-400">{formatNgnCurrency(transaction.totalNGN || transaction.totalAmountNGN)}</td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                        transaction.paymentStatus === 'paid' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : transaction.paymentStatus === 'partial'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {transaction.paymentStatus}
+                                    </span>
+                                </td>
                                 <td className="px-6 py-4 text-center">
                                     <div className='flex justify-center items-center gap-2'>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-600">

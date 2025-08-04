@@ -62,12 +62,6 @@ export default function Settings() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
 
-  const [notifications, setNotifications] = useState({
-    unpaidAlerts: true,
-    monthlyReports: true,
-    exchangeRateAlerts: false,
-  })
-
   const [permissions, setPermissions] = useState(userRoles)
 
   const handleSaveBusinessInfo = () => {
@@ -112,16 +106,6 @@ export default function Settings() {
     setSelectedCategory(null)
   }
 
-  const handleDownloadBackup = () => {
-    alert("Downloading backup file...")
-  }
-
-  const handleUploadBackup = (event) => {
-    const file = event.target.files[0]
-    if (file) {
-      alert(`Uploading backup file: ${file.name}`)
-    }
-  }
 
   const togglePermission = (roleId, permission) => {
     setPermissions(
@@ -164,12 +148,6 @@ export default function Settings() {
             <TabsTrigger value="categories" className="text-xs lg:text-sm">
               Categories
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs lg:text-sm">
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="backup" className="text-xs lg:text-sm">
-              Backup
-            </TabsTrigger>
             <TabsTrigger value="permissions" className="text-xs lg:text-sm">
               Permissions
             </TabsTrigger>
@@ -205,22 +183,6 @@ export default function Settings() {
                     onChange={(e) => setBusinessInfo({ ...businessInfo, email: e.target.value })}
                     className="mt-1"
                   />
-                </div>
-                <div>
-                  <Label htmlFor="defaultCurrency">Default Currency Display</Label>
-                  <Select
-                    value={businessInfo.defaultCurrency}
-                    onValueChange={(value) => setBusinessInfo({ ...businessInfo, defaultCurrency: value })}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="usd">USD Only</SelectItem>
-                      <SelectItem value="ngn">NGN Only</SelectItem>
-                      <SelectItem value="both">Both Currencies</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
               <div className="flex justify-end">
@@ -265,33 +227,6 @@ export default function Settings() {
                     onChange={(e) => setExchangeRates({ ...exchangeRates, sellingRate: e.target.value })}
                     className="mt-1"
                   />
-                </div>
-              </div>
-              <div>
-                <Label>Update Mode</Label>
-                <div className="flex items-center space-x-6 mt-2">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="updateMode"
-                      value="manual"
-                      checked={exchangeRates.updateMode === "manual"}
-                      onChange={(e) => setExchangeRates({ ...exchangeRates, updateMode: e.target.value })}
-                      className="text-blue-600"
-                    />
-                    <span>Manual Update</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      name="updateMode"
-                      value="auto"
-                      checked={exchangeRates.updateMode === "auto"}
-                      onChange={(e) => setExchangeRates({ ...exchangeRates, updateMode: e.target.value })}
-                      className="text-blue-600"
-                    />
-                    <span>Auto Update</span>
-                  </label>
                 </div>
               </div>
               <div className="flex justify-end">
@@ -366,88 +301,6 @@ export default function Settings() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Notifications */}
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Bell className="h-5 w-5 text-orange-600" />
-                <CardTitle>Notification Settings</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Unpaid Transaction Alerts</h3>
-                    <p className="text-sm text-gray-600">Get notified about overdue payments</p>
-                  </div>
-                  <Switch
-                    checked={notifications.unpaidAlerts}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, unpaidAlerts: checked })}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Monthly Profit Report Email</h3>
-                    <p className="text-sm text-gray-600">Receive monthly business performance reports</p>
-                  </div>
-                  <Switch
-                    checked={notifications.monthlyReports}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, monthlyReports: checked })}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Exchange Rate Spike Alerts</h3>
-                    <p className="text-sm text-gray-600">Get alerts when exchange rates change significantly</p>
-                  </div>
-                  <Switch
-                    checked={notifications.exchangeRateAlerts}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, exchangeRateAlerts: checked })}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Backup & Restore */}
-        <TabsContent value="backup">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Download className="h-5 w-5 text-indigo-600" />
-                <CardTitle>Backup & Restore</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Download Backup</h3>
-                  <p className="text-sm text-gray-600">Export all your data as a backup file</p>
-                  <Button onClick={handleDownloadBackup} className="bg-indigo-600 hover:bg-indigo-700">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Backup
-                  </Button>
-                </div>
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">Restore Backup</h3>
-                  <p className="text-sm text-gray-600">Upload a backup file to restore your data</p>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      type="file"
-                      accept=".json,.csv"
-                      onChange={handleUploadBackup}
-                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                    />
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>

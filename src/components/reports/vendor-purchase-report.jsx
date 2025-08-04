@@ -72,7 +72,7 @@ export function VendorPurchaseReport({ dateFilter, onExportPDF, onExportExcel })
   }, [data])
 
   // For item breakdown, you may need to fetch from another endpoint or extend backend
-  const itemBreakdown = [] // Not available in current API response
+  const itemBreakdown = useMemo(() => data?.itemBreakdown || [], [data])
 
   const recentPurchases = useMemo(() => {
     if (!data?.recentPurchases) return []
@@ -129,13 +129,23 @@ export function VendorPurchaseReport({ dateFilter, onExportPDF, onExportExcel })
           </CardContent>
         </Card>
 
-        {/* Item-wise Purchases (not available in API, show empty or placeholder) */}
+        {/* Item-wise Purchases */}
         <Card>
           <CardHeader>
             <CardTitle>Purchases by Item Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-80 flex items-center justify-center text-gray-400">Not available</div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={itemBreakdown} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                  <YAxis dataKey="item" type="category" width={100} />
+                  <Tooltip formatter={(value) => formatUsdCurrency(value)} />
+                  <Bar dataKey="amount" fill="#10B981" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -275,11 +275,11 @@ export default function VendorTransactions() {
                           : transaction.quantity}
                       </td>
                       <td className="py-4 px-4 text-right font-mono text-gray-900">
-                        {formatUsdCurrency(transaction.amountUSD)}
+                        {formatUsdCurrency(transaction.priceUSD || transaction.amountUSD)}
                       </td>
                       <td className="py-4 px-4 text-center text-gray-600">₦{transaction.exchangeRate}</td>
                       <td className="py-4 px-4 text-right font-mono text-gray-900">
-                        {formatNgnCurrency(transaction.amountNGN)}
+                        {formatNgnCurrency(transaction.priceNGN || transaction.amountNGN)}
                       </td>
                       <td className="py-4 px-4 text-right font-mono text-gray-600">
                         {formatUsdCurrency(transaction.otherExpensesUSD)}
@@ -292,6 +292,8 @@ export default function VendorTransactions() {
                           className={
                             transaction.paymentStatus === "paid"
                               ? "bg-green-100 text-green-800"
+                              : transaction.paymentStatus === "partial"
+                              ? "bg-yellow-100 text-yellow-800"
                               : "bg-red-100 text-red-800"
                           }
                         >

@@ -42,4 +42,12 @@ export const getCustomerTransactions = async (customerId, params) => {
 export const createCustomerTransaction = async (customerId, transactionData) => {
   const response = await authAxios.post(`/customers/${customerId}/transactions`, transactionData);
   return response.data;
+};
+
+// Get customer balance by name
+export const getCustomerBalanceByName = async (customerName) => {
+  const response = await authAxios.get(`/customers/balance/by-name`, {
+    params: { name: customerName }
+  });
+  return response.data;
 }; 

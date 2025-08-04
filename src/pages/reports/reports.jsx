@@ -84,6 +84,7 @@ export default function Reports() {
                 </p>
                 <p className="text-xl lg:text-2xl font-bold text-green-600">₦45,250,000</p>
                 <p className="text-xs text-gray-500">$27,424 USD</p>
+                <p className="text-xs text-green-500">+15.2% vs last month</p>
               </div>
             </div>
           </CardContent>
@@ -100,6 +101,7 @@ export default function Reports() {
                 </p>
                 <p className="text-xl lg:text-2xl font-bold text-red-600">₦32,180,000</p>
                 <p className="text-xs text-gray-500">$19,503 USD</p>
+                <p className="text-xs text-red-500">+8.7% vs last month</p>
               </div>
             </div>
           </CardContent>
@@ -116,6 +118,7 @@ export default function Reports() {
                 </p>
                 <p className="text-xl lg:text-2xl font-bold text-blue-600">₦13,070,000</p>
                 <p className="text-xs text-gray-500">$7,921 USD</p>
+                <p className="text-xs text-green-500">+28.4% vs last month</p>
               </div>
             </div>
           </CardContent>
@@ -138,6 +141,28 @@ export default function Reports() {
         </Card>
       </div>
 
+      {/* Additional Quick Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+        <Card>
+          <CardContent className="p-4 lg:p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-600">Active Customers</p>
+              <p className="text-2xl font-bold text-indigo-600">1,247</p>
+              <p className="text-xs text-green-500">+12 new this month</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 lg:p-6">
+            <div className="text-center">
+              <p className="text-sm font-medium text-gray-600">Exchange Rate</p>
+              <p className="text-2xl font-bold text-emerald-600">₦1,650</p>
+              <p className="text-xs text-emerald-500">+1.85% this week</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Reports Tabs */}
       <Card>
         <CardHeader>
@@ -150,17 +175,8 @@ export default function Reports() {
                 <TabsTrigger value="sales" className="text-xs lg:text-sm">
                   Sales Report
                 </TabsTrigger>
-                <TabsTrigger value="vendor" className="text-xs lg:text-sm">
-                  Vendor Purchases
-                </TabsTrigger>
                 <TabsTrigger value="profit-loss" className="text-xs lg:text-sm">
                   Profit & Loss
-                </TabsTrigger>
-                <TabsTrigger value="outstanding" className="text-xs lg:text-sm">
-                  Outstanding
-                </TabsTrigger>
-                <TabsTrigger value="exchange-rate" className="text-xs lg:text-sm">
-                  Exchange Rate
                 </TabsTrigger>
                 <TabsTrigger value="customer-balance" className="text-xs lg:text-sm">
                   Customer Balance

@@ -148,7 +148,7 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid  gap-6">
         {/* Monthly Profit Trend */}
         <Card>
           <CardHeader>
@@ -172,26 +172,6 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
                   <Line type="monotone" dataKey="expenses" stroke="#EF4444" strokeWidth={2} name="Expenses" />
                   <Line type="monotone" dataKey="profit" stroke="#3B82F6" strokeWidth={3} name="Profit" />
                 </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Expense Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Expense Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={expenseBreakdown} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" tickFormatter={(value) => `₦${(value / 1000000).toFixed(0)}M`} />
-                  <YAxis dataKey="category" type="category" width={120} />
-                  <Tooltip formatter={(value) => formatNgnCurrency(value)} />
-                  <Bar dataKey="amount" fill="#F59E0B" />
-                </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
