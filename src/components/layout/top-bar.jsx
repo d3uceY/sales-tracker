@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "../../context/auth-context"
 import { ChangePasswordModal } from "../auth/change-password-modal"
 import { LogOut, SettingsIcon } from "lucide-react"
@@ -24,16 +24,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Link } from "react-router-dom"
+import { useBusiness } from "../../context/BusinessContext"
 
-const exchangeRates = [
-  { currency: "USD/NGN", rate: "₦1,650" },
-  { currency: "GBP/NGN", rate: "₦2,050" },
-  { currency: "EUR/NGN", rate: "₦1,750" },
-]
+// This will be replaced with real data from context
 
 export function TopBar({ onMenuClick }) {
-  const [selectedRate, setSelectedRate] = useState(exchangeRates[0])
+  const { exchangeRates: exchangeRatesData } = useBusiness()
   const { user, logout } = useAuth()
+
+  // Create exchange rates array from context data
+  const exchangeRates = [
+    { currency: "USD/NGN", rate: `₦${exchangeRatesData.buyRate?.toLocaleString() || "1,650"}` },
+    { currency: "USD/NGN (Sell)", rate: `₦${exchangeRatesData.sellRate?.toLocaleString() || "1,655"}` },
+  ]
+  
+  // Use useEffect to update selectedRate when exchange rates change
+  const [selectedRate, setSelectedRate] = useState(exchangeRates[0])
+  
+  // Update selectedRate when exchange rates change
+  useEffect(() => {
+    setSelectedRate(exchangeRates[0])
+  }, [exchangeRatesData.buyRate, exchangeRatesData.sellRate])
 
   const handleLogout = async () => {
     await logout()

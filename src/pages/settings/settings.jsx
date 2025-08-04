@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ItemCategoryModal } from "../../components/settings/item-category-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { Building2, DollarSign, Tag, Bell, Download, Shield, Plus, Edit, Trash2, Save } from "lucide-react"
+import { getBusinessInfo, updateBusinessInfo } from "@/helpers/api/business"
+import { getExchangeRate, updateExchangeRate } from "@/helpers/api/exchange-rate"
+import { getItemCategories, createItemCategory, updateItemCategory, deleteItemCategory } from "@/helpers/api/item-categories"
+import { useBusiness } from "../../context/BusinessContext"
 
 const initialCategories = [
   { id: 1, name: "Laptop", description: "Laptop computers and accessories", active: true },
@@ -45,31 +49,107 @@ const userRoles = [
 ]
 
 export default function Settings() {
+  const { updateBusinessInfo: updateBusinessContext, updateExchangeRates: updateExchangeContext } = useBusiness()
   const [businessInfo, setBusinessInfo] = useState({
-    name: "SalesFlow Nigeria",
-    email: "admin@salesflow.ng",
-    defaultCurrency: "both",
+    name: "",
+    email: "",
   })
+  const [businessLoading, setBusinessLoading] = useState(true)
+  const [businessError, setBusinessError] = useState("")
+  const [businessSaving, setBusinessSaving] = useState(false)
+  const [businessSuccess, setBusinessSuccess] = useState("")
 
   const [exchangeRates, setExchangeRates] = useState({
-    buyingRate: "1650",
-    sellingRate: "1655",
-    updateMode: "manual",
+    buyingRate: "",
+    sellingRate: "",
   })
+  const [exchangeLoading, setExchangeLoading] = useState(true)
+  const [exchangeError, setExchangeError] = useState("")
+  const [exchangeSaving, setExchangeSaving] = useState(false)
+  const [exchangeSuccess, setExchangeSuccess] = useState("")
 
-  const [categories, setCategories] = useState(initialCategories)
+  const [categories, setCategories] = useState([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [categoriesError, setCategoriesError] = useState("")
+  const [categorySaving, setCategorySaving] = useState(false)
+  const [categoryDeleting, setCategoryDeleting] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
 
   const [permissions, setPermissions] = useState(userRoles)
 
-  const handleSaveBusinessInfo = () => {
-    alert("Business information saved successfully!")
+  useEffect(() => {
+    setBusinessLoading(true)
+    setBusinessError("")
+    getBusinessInfo()
+      .then((res) => {
+        setBusinessInfo({
+          name: res.data?.name || "",
+          email: res.data?.email || "",
+        })
+      })
+      .catch((err) => {
+        setBusinessError("Failed to load business info")
+      })
+      .finally(() => setBusinessLoading(false))
+
+    setExchangeLoading(true)
+    setExchangeError("")
+    getExchangeRate()
+      .then((res) => {
+        setExchangeRates({
+          buyingRate: res.data?.buyRate?.toString() || "",
+          sellingRate: res.data?.sellRate?.toString() || "",
+        })
+      })
+      .catch(() => setExchangeError("Failed to load exchange rates"))
+      .finally(() => setExchangeLoading(false))
+
+    setCategoriesLoading(true)
+    setCategoriesError("")
+    getItemCategories()
+      .then((res) => {
+        setCategories(res.data || [])
+      })
+      .catch(() => setCategoriesError("Failed to load categories"))
+      .finally(() => setCategoriesLoading(false))
+  }, [])
+
+  const handleSaveBusinessInfo = async () => {
+    setBusinessSaving(true)
+    setBusinessError("")
+    setBusinessSuccess("")
+    try {
+      await updateBusinessInfo(businessInfo)
+      // Update the global business context
+      updateBusinessContext(businessInfo)
+      setBusinessSuccess("Business information saved successfully!")
+    } catch (err) {
+      setBusinessError("Failed to save business info")
+    } finally {
+      setBusinessSaving(false)
+    }
   }
 
-  const handleSaveExchangeRates = () => {
-    alert("Exchange rate settings saved successfully!")
+  const handleSaveExchangeRates = async () => {
+    setExchangeSaving(true)
+    setExchangeError("")
+    setExchangeSuccess("")
+    try {
+      const newRates = {
+        buyRate: Number(exchangeRates.buyingRate),
+        sellRate: Number(exchangeRates.sellingRate),
+      }
+      await updateExchangeRate(newRates)
+      // Update the global exchange rates context
+      updateExchangeContext(newRates)
+      setExchangeSuccess("Exchange rate settings saved successfully!")
+    } catch (err) {
+      setExchangeError("Failed to save exchange rates")
+    } finally {
+      setExchangeSaving(false)
+    }
   }
 
   const handleAddCategory = () => {
@@ -87,23 +167,38 @@ export default function Settings() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSaveCategory = (categoryData) => {
-    if (selectedCategory) {
-      setCategories(categories.map((cat) => (cat.id === selectedCategory.id ? { ...cat, ...categoryData } : cat)))
-    } else {
-      const newCategory = {
-        id: Math.max(...categories.map((c) => c.id)) + 1,
-        ...categoryData,
+  const handleSaveCategory = async (categoryData) => {
+    setCategorySaving(true)
+    try {
+      if (selectedCategory) {
+        // Update existing category
+        const updatedCategory = await updateItemCategory(selectedCategory.id, categoryData)
+        setCategories(categories.map((cat) => (cat.id === selectedCategory.id ? updatedCategory.data : cat)))
+      } else {
+        // Create new category
+        const newCategory = await createItemCategory(categoryData)
+        setCategories([...categories, newCategory.data])
       }
-      setCategories([...categories, newCategory])
+      setIsCategoryModalOpen(false)
+    } catch (error) {
+      console.error('Error saving category:', error)
+    } finally {
+      setCategorySaving(false)
     }
-    setIsCategoryModalOpen(false)
   }
 
-  const handleConfirmDelete = () => {
-    setCategories(categories.filter((cat) => cat.id !== selectedCategory.id))
-    setIsDeleteModalOpen(false)
-    setSelectedCategory(null)
+  const handleConfirmDelete = async () => {
+    setCategoryDeleting(true)
+    try {
+      await deleteItemCategory(selectedCategory.id)
+      setCategories(categories.filter((cat) => cat.id !== selectedCategory.id))
+      setIsDeleteModalOpen(false)
+      setSelectedCategory(null)
+    } catch (error) {
+      console.error('Error deleting category:', error)
+    } finally {
+      setCategoryDeleting(false)
+    }
   }
 
 
@@ -164,6 +259,15 @@ export default function Settings() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              {businessLoading && (
+                <div className="text-blue-600 text-sm">Loading business info...</div>
+              )}
+              {businessError && (
+                <div className="text-red-600 text-sm">{businessError}</div>
+              )}
+              {businessSuccess && (
+                <div className="text-green-600 text-sm">{businessSuccess}</div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="businessName">Business Name</Label>
@@ -172,6 +276,7 @@ export default function Settings() {
                     value={businessInfo.name}
                     onChange={(e) => setBusinessInfo({ ...businessInfo, name: e.target.value })}
                     className="mt-1"
+                    disabled={businessLoading || businessSaving}
                   />
                 </div>
                 <div>
@@ -182,13 +287,14 @@ export default function Settings() {
                     value={businessInfo.email}
                     onChange={(e) => setBusinessInfo({ ...businessInfo, email: e.target.value })}
                     className="mt-1"
+                    disabled={businessLoading || businessSaving}
                   />
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSaveBusinessInfo} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSaveBusinessInfo} className="bg-blue-600 hover:bg-blue-700" disabled={businessLoading || businessSaving}>
                   <Save className="h-4 w-4 mr-2" />
-                  Save Changes
+                  {businessSaving ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </CardContent>
@@ -205,6 +311,15 @@ export default function Settings() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              {exchangeLoading && (
+                <div className="text-blue-600 text-sm">Loading exchange rates...</div>
+              )}
+              {exchangeError && (
+                <div className="text-red-600 text-sm">{exchangeError}</div>
+              )}
+              {exchangeSuccess && (
+                <div className="text-green-600 text-sm">{exchangeSuccess}</div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="buyingRate">Default Buying Rate (USD to NGN)</Label>
@@ -215,6 +330,7 @@ export default function Settings() {
                     value={exchangeRates.buyingRate}
                     onChange={(e) => setExchangeRates({ ...exchangeRates, buyingRate: e.target.value })}
                     className="mt-1"
+                    disabled={exchangeLoading || exchangeSaving}
                   />
                 </div>
                 <div>
@@ -226,13 +342,14 @@ export default function Settings() {
                     value={exchangeRates.sellingRate}
                     onChange={(e) => setExchangeRates({ ...exchangeRates, sellingRate: e.target.value })}
                     className="mt-1"
+                    disabled={exchangeLoading || exchangeSaving}
                   />
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSaveExchangeRates} className="bg-green-600 hover:bg-green-700">
+                <Button onClick={handleSaveExchangeRates} className="bg-green-600 hover:bg-green-700" disabled={exchangeLoading || exchangeSaving}>
                   <Save className="h-4 w-4 mr-2" />
-                  Save Settings
+                  {exchangeSaving ? "Saving..." : "Save Settings"}
                 </Button>
               </div>
             </CardContent>
@@ -255,6 +372,12 @@ export default function Settings() {
               </div>
             </CardHeader>
             <CardContent>
+              {categoriesLoading && (
+                <div className="text-purple-600 text-sm">Loading categories...</div>
+              )}
+              {categoriesError && (
+                <div className="text-red-600 text-sm">{categoriesError}</div>
+              )}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -284,6 +407,7 @@ export default function Settings() {
                               size="icon"
                               onClick={() => handleEditCategory(category)}
                               className="h-8 w-8 hover:bg-purple-50 hover:text-purple-600"
+                              disabled={categorySaving || categoryDeleting}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -292,6 +416,7 @@ export default function Settings() {
                               size="icon"
                               onClick={() => handleDeleteCategory(category)}
                               className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
+                              disabled={categorySaving || categoryDeleting}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -370,12 +495,13 @@ export default function Settings() {
       </Tabs>
 
       {/* Modals */}
-      <ItemCategoryModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        onSave={handleSaveCategory}
-        category={selectedCategory}
-      />
+              <ItemCategoryModal
+          isOpen={isCategoryModalOpen}
+          onClose={() => setIsCategoryModalOpen(false)}
+          onSave={handleSaveCategory}
+          category={selectedCategory}
+          loading={categorySaving}
+        />
 
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
@@ -383,6 +509,7 @@ export default function Settings() {
         onConfirm={handleConfirmDelete}
         title="Delete Category"
         message={`Are you sure you want to delete the category "${selectedCategory?.name}"? This action cannot be undone.`}
+        loading={categoryDeleting}
       />
     </div>
   )

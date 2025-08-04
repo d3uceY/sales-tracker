@@ -17,14 +17,16 @@ import ResetPasswordPage from "./pages/auth/reset-password"
 import { ProtectedRoute } from "./components/auth/protected-route"
 import { CustomerProvider } from "./context/CustomerContext"
 import { ItemCategoryProvider } from "./context/ItemCategoryContext"
+import { BusinessProvider } from "./context/BusinessContext"
 
 function App() {
   return (
     <AuthProvider>
-      <TransactionProvider>
-        <CustomerProvider>
-          <ItemCategoryProvider>
-            <Router>
+      <BusinessProvider>
+        <TransactionProvider>
+          <CustomerProvider>
+            <ItemCategoryProvider>
+              <Router>
               <Routes>
                 {/* Public routes */}
                 <Route path="/login" element={<LoginPage />} />
@@ -57,6 +59,7 @@ function App() {
           </ItemCategoryProvider>
         </CustomerProvider>
       </TransactionProvider>
+    </BusinessProvider>
     </AuthProvider>
   )
 }

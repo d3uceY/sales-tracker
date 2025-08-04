@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { X } from "lucide-react"
 
-export function ItemCategoryModal({ isOpen, onClose, onSave, category }) {
+export function ItemCategoryModal({ isOpen, onClose, onSave, category, loading = false }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -89,6 +89,7 @@ export function ItemCategoryModal({ isOpen, onClose, onSave, category }) {
                 onChange={(e) => handleChange("name", e.target.value)}
                 placeholder="Enter category name"
                 className={`mt-1 ${errors.name ? "border-red-500 focus:ring-red-500" : ""}`}
+                disabled={loading}
               />
               {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
             </div>
@@ -106,6 +107,7 @@ export function ItemCategoryModal({ isOpen, onClose, onSave, category }) {
                 className={`mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                   errors.description ? "border-red-500 focus:ring-red-500" : ""
                 }`}
+                disabled={loading}
               />
               {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
             </div>
@@ -121,16 +123,17 @@ export function ItemCategoryModal({ isOpen, onClose, onSave, category }) {
                 id="active"
                 checked={formData.active}
                 onCheckedChange={(checked) => handleChange("active", checked)}
+                disabled={loading}
               />
             </div>
           </div>
 
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">
-              {category ? "Update Category" : "Create Category"}
+            <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={loading}>
+              {loading ? "Saving..." : category ? "Update Category" : "Create Category"}
             </Button>
           </div>
         </form>

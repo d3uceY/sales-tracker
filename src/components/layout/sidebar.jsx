@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "../../context/auth-context"
+import { useBusiness } from "../../context/BusinessContext"
 
 const menuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -30,6 +31,7 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
   const location = useLocation()
   const navigate = useNavigate()
   const { logout } = useAuth()
+  const { businessInfo } = useBusiness()
 
   const handleLogout = async () => {
     await logout()
@@ -56,7 +58,7 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
         <div className="flex items-center justify-between h-16 px-4 bg-gradient-to-r from-blue-600 to-blue-700">
           <div className="flex items-center space-x-2">
             <DollarSign className="h-8 w-8 text-white" />
-            <span className="text-xl font-bold text-white">SalesFlow</span>
+            <span className="text-xl font-bold text-white">{businessInfo.name}</span>
           </div>
           <Button
             variant="ghost"
@@ -86,7 +88,7 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
         >
           <div className={cn("flex items-center space-x-2", isSidebarCollapsed ? "justify-center" : "")}>
             <DollarSign className="h-8 w-8 text-white flex-shrink-0" />
-            {!isSidebarCollapsed && <span className="text-xl font-bold text-white">SalesFlow</span>}
+            {!isSidebarCollapsed && <span className="text-xl font-bold text-white">{businessInfo.name}</span>}
           </div>
           <button
             onClick={toggleSidebar}

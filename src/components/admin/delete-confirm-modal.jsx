@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, X } from "lucide-react"
 
-export function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
+export function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, message, loading = false }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -28,11 +28,11 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, message 
           </div>
 
           <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button type="button" onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
-              Delete
+            <Button type="button" onClick={onConfirm} className="bg-red-600 hover:bg-red-700" disabled={loading}>
+              {loading ? "Deleting..." : "Delete"}
             </Button>
           </div>
         </div>
