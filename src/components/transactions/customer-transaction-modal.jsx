@@ -13,12 +13,16 @@ import {
   formatBalanceStatus,
 } from "../../helpers/balance/balance-calculator"
 import { useCustomerData } from "../../context/CustomerContext"
-import { useItemCategories } from "../../context/ItemCategoryContext"
+import { getItemCategories, createItemCategory } from "../../helpers/api/item-categories"
 import { getCustomerBalanceByName } from "../../helpers/api/customers"
+import { useBusiness } from "../../context/BusinessContext"
+import { updateExchangeRate } from "../../helpers/api/exchange-rate"
 
 export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction }) {
   const { customers, addCustomer, fetchCustomers, loading } = useCustomerData();
-  const { categories, addCategory } = useItemCategories();
+  const { exchangeRates: exchangeRatesData, updateExchangeRates } = useBusiness();
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   const [formData, setFormData] = useState({
     customerId: "",
     customCustomerName: "",
@@ -27,7 +31,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     transactionDate: "",
     quantity: "",
     priceNGN: "",
-    exchangeRate: "1500",
+    exchangeRate: "",
     priceUSD: "",
     otherExpensesUSD: "0",
     otherExpensesNGN: "0",
@@ -47,7 +51,17 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
   const totalUSD = (Number.parseFloat(formData.priceUSD) || 0) + (Number.parseFloat(formData.otherExpensesUSD) || 0)
 
   useEffect(() => {
-    if (isOpen) fetchCustomers();
+    if (isOpen) {
+      fetchCustomers();
+      // Fetch categories
+      setLoadingCategories(true);
+      getItemCategories()
+        .then((res) => {
+          setCategories(res.data || []);
+        })
+        .catch(() => setCategories([]))
+        .finally(() => setLoadingCategories(false));
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -62,7 +76,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         transactionDate: transaction.transactionDate,
         quantity: transaction.quantity.toString(),
         priceNGN: transaction.priceNGN ? transaction.priceNGN.toString() : "",
-        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : "1500",
+        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : exchangeRatesData.sellRate?.toString() || "1500",
         priceUSD: transaction.priceUSD ? transaction.priceUSD.toString() : "",
         otherExpensesUSD: transaction.otherExpensesUSD ? transaction.otherExpensesUSD.toString() : "0",
         otherExpensesNGN: transaction.otherExpensesNGN ? transaction.otherExpensesNGN.toString() : "0",
@@ -78,7 +92,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         transactionDate: new Date().toISOString().split("T")[0],
         quantity: "",
         priceNGN: "",
-        exchangeRate: "1500",
+        exchangeRate: exchangeRatesData.sellRate?.toString() || "1500",
         priceUSD: "",
         otherExpensesUSD: "0",
         otherExpensesNGN: "0",
@@ -87,7 +101,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
       })
     }
     setErrors({})
-  }, [transaction, isOpen, customers])
+  }, [transaction, isOpen, customers, exchangeRatesData.sellRate])
 
   // Fetch customer balance when customer is selected
   useEffect(() => {
@@ -226,8 +240,39 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         }
         let finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased;
         if (formData.itemPurchased === "Other" && formData.customItemName) {
-          addCategory({ name: formData.customItemName, description: "User added", active: true });
+          try {
+            const newCategory = await createItemCategory({ 
+              name: formData.customItemName, 
+              description: "User added from customer transaction",
+              active: true 
+            });
+            // Refresh categories list
+            setCategories((prev) => [...prev, newCategory.data]);
+          } catch (error) {
+            console.error('Error creating category:', error);
+            // Continue with the transaction even if category creation fails
+          }
         }
+        
+        // Update exchange rate if it's different from the default sell rate
+        const newExchangeRate = Number.parseFloat(formData.exchangeRate)
+        if (newExchangeRate !== exchangeRatesData.sellRate) {
+          try {
+            await updateExchangeRate({
+              buyRate: exchangeRatesData.buyRate,
+              sellRate: newExchangeRate
+            })
+            // Update the context with new rates
+            updateExchangeRates({
+              buyRate: exchangeRatesData.buyRate,
+              sellRate: newExchangeRate
+            })
+          } catch (error) {
+            console.error('Error updating exchange rate:', error)
+            // Continue with the transaction even if rate update fails
+          }
+        }
+        
         const amountPaidValue = Number.parseFloat(formData.amountPaid) || 0;
         const newOutstandingBalance = calculateNewBalance(previousBalance, totalUSD, amountPaidValue);
         const transactionData = {
@@ -263,9 +308,6 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
   }
 
   const customerOptions = (customers || []).map(c => ({ id: c.id, name: c.name })).concat({ id: "Other", name: "Other" });
-  // Only add 'Other' if it is not already present in the categories
-  const itemOptionsBase = (categories || []).filter(c => c.active).map(c => c.name);
-  const itemOptions = itemOptionsBase.includes("Other") ? itemOptionsBase : [...itemOptionsBase, "Other"];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -350,14 +392,15 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               </Label>
               <Select value={formData.itemPurchased} onValueChange={(value) => handleChange("itemPurchased", value)}>
                 <SelectTrigger className={`mt-1 ${errors.itemPurchased ? "border-red-500" : ""}`}>
-                  <SelectValue placeholder="Select item type" />
+                  <SelectValue placeholder={loadingCategories ? "Loading items..." : "Select item type"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {itemOptions.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
+                  {categories.filter(c => c.active).map((category) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
                     </SelectItem>
                   ))}
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
               {formData.itemPurchased === "Other" && (
@@ -430,6 +473,10 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 placeholder="1500.00"
                 className={`mt-1 ${errors.exchangeRate ? "border-red-500" : ""}`}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Default sell rate: ₦{exchangeRatesData.sellRate?.toLocaleString() || "1,655"}. 
+                Changing this will update the default rate.
+              </p>
               {errors.exchangeRate && <p className="mt-1 text-sm text-red-600">{errors.exchangeRate}</p>}
             </div>
 
