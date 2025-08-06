@@ -11,10 +11,7 @@ export function BusinessProvider({ children }) {
     name: "SalesFlow",
     email: "",
   })
-  const [exchangeRates, setExchangeRates] = useState({
-    buyRate: 1650,
-    sellRate: 1655,
-  })
+  const [exchangeRates, setExchangeRates] = useState(null) // null until loaded
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -36,8 +33,8 @@ export function BusinessProvider({ children }) {
       const exchangeRes = await getExchangeRate()
       if (exchangeRes.data) {
         setExchangeRates({
-          buyRate: exchangeRes.data.buyRate || 1650,
-          sellRate: exchangeRes.data.sellRate || 1655,
+          buyRate: exchangeRes.data.buyRate ?? null,
+          sellRate: exchangeRes.data.sellRate ?? null,
         })
       }
     } catch (err) {

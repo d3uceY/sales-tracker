@@ -16,6 +16,8 @@ import axios from "axios"
 import { authAxios } from "../../helpers/api/auth"
 import React from "react"
 import Spinner from "@/components/ui/spinner"
+import { toast } from "react-hot-toast"
+import { updateTransaction, deleteTransaction } from "@/helpers/api/transaction"
 
 export default function CustomerTransactions() {
   // All hooks must be called unconditionally and at the top
@@ -102,34 +104,29 @@ export default function CustomerTransactions() {
 
     const handleSaveTransaction = async ({ customerId, transactionData }) => {
       if (selectedTransaction) {
-        // This part of the logic needs to be updated to call an API for editing
-        // For now, we'll just close the modal and refetch
-        setIsTransactionModalOpen(false)
-        // Example: await editCustomer(selectedTransaction.id, transactionData)
-        // This function is no longer available in the context, so this will cause an error
-        // If you have an API endpoint for editing, you'd call it here
+        try {
+          await updateTransaction(selectedTransaction.id, transactionData)
+          toast.success("Transaction updated successfully!")
+          await fetchTransactions()
+        } catch (err) {
+          toast.error("Failed to update transaction.")
+        }
       } else {
-        // This part of the logic needs to be updated to call an API for adding
-        // For now, we'll just close the modal and refetch
-        setIsTransactionModalOpen(false)
-        // Example: await addCustomerTransaction(customerId, transactionData)
-        // This function is no longer available in the context, so this will cause an error
-        // If you have an API endpoint for adding, you'd call it here
+        await addTransaction({ customerId, transactionData })
       }
-      // After saving, refetch transactions
-      // This part of the logic needs to be updated to call an API for fetching transactions
-      // For now, we'll just close the modal and refetch
-      // setIsTransactionModalOpen(false)
-      // fetchCustomers() // This function is no longer available in the context
+      setIsTransactionModalOpen(false)
     }
 
     const handleConfirmDelete = async () => {
-      // This part of the logic needs to be updated to call an API for deleting
-      // For now, we'll just close the modal and refetch
+      try {
+        await deleteTransaction(selectedTransaction.id)
+        toast.success("Transaction deleted successfully!")
+        await fetchTransactions()
+      } catch (err) {
+        toast.error("Failed to delete transaction.")
+      }
       setIsDeleteModalOpen(false)
       setSelectedTransaction(null)
-      // setIsDeleteModalOpen(false)
-      // fetchCustomers() // This function is no longer available in the context
     }
 
     const handleGenerateInvoice = (transaction) => {
@@ -266,6 +263,8 @@ export default function CustomerTransactions() {
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Amount (USD)</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Other Exp (USD)</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Other Exp (NGN)</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">Amount Paid</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">Outstanding Balance</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-600">Status</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Total (NGN)</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-600">Actions</th>
@@ -328,6 +327,12 @@ export default function CustomerTransactions() {
                         </td>
                         <td className="py-4 px-4 text-right font-mono text-gray-600">
                           {formatNgnCurrency(transaction.otherExpensesNGN)}
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono text-blue-900">
+                          {formatNgnCurrency(transaction.amountPaid)}
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono text-red-900">
+                          {formatNgnCurrency(transaction.outstandingBalance)}
                         </td>
                         <td className="py-4 px-4 text-center">
                           <Badge
@@ -395,7 +400,7 @@ export default function CustomerTransactions() {
         <CustomerTransactionModal
           isOpen={isTransactionModalOpen}
           onClose={() => setIsTransactionModalOpen(false)}
-          onSave={addTransaction}
+          onSave={handleSaveTransaction}
           transaction={selectedTransaction}
         />
 

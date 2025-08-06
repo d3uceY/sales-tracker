@@ -29,22 +29,30 @@ import { useBusiness } from "../../context/BusinessContext"
 // This will be replaced with real data from context
 
 export function TopBar({ onMenuClick }) {
-  const { exchangeRates: exchangeRatesData } = useBusiness()
+  const { exchangeRates: exchangeRatesData, loading: businessLoading } = useBusiness()
   const { user, logout } = useAuth()
 
-  // Create exchange rates array from context data
-  const exchangeRates = [
-    { currency: "USD/NGN", rate: `₦${exchangeRatesData.buyRate?.toLocaleString() || "1,650"}` },
-    { currency: "USD/NGN (Sell)", rate: `₦${exchangeRatesData.sellRate?.toLocaleString() || "1,655"}` },
-  ]
-  
+  // Only show dropdown when real rates are loaded
+  const showExchangeRates =
+    exchangeRatesData &&
+    typeof exchangeRatesData.buyRate === 'number' &&
+    typeof exchangeRatesData.sellRate === 'number';
+
+  const exchangeRates = showExchangeRates
+    ? [
+        { currency: "USD/NGN", rate: `₦${exchangeRatesData.buyRate.toLocaleString()}` },
+        { currency: "USD/NGN (Sell)", rate: `₦${exchangeRatesData.sellRate.toLocaleString()}` },
+      ]
+    : [];
+
   // Use useEffect to update selectedRate when exchange rates change
-  const [selectedRate, setSelectedRate] = useState(exchangeRates[0])
-  
-  // Update selectedRate when exchange rates change
+  const [selectedRate, setSelectedRate] = useState(exchangeRates[0] || { currency: '', rate: '' })
+
   useEffect(() => {
-    setSelectedRate(exchangeRates[0])
-  }, [exchangeRatesData.buyRate, exchangeRatesData.sellRate])
+    if (showExchangeRates) {
+      setSelectedRate(exchangeRates[0])
+    }
+  }, [exchangeRatesData?.buyRate, exchangeRatesData?.sellRate, showExchangeRates])
 
   const handleLogout = async () => {
     await logout()
@@ -72,35 +80,39 @@ export function TopBar({ onMenuClick }) {
         <div className="flex items-center space-x-4">
           {/* Exchange Rate Dropdown */}
           <div className="hidden md:flex">
-            <Select
-              defaultValue={selectedRate.currency}
-              onValueChange={(value) => {
-                const rate = exchangeRates.find((r) => r.currency === value)
-                if (rate) setSelectedRate(rate)
-              }}
-            >
-              <SelectTrigger className="bg-green-50 border-green-200 text-green-800 font-bold">
-                <SelectValue>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{selectedRate.currency}:</span>
-                    <span>{selectedRate.rate}</span>
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Exchange Rates</SelectLabel>
-                  {exchangeRates.map((rate) => (
-                    <SelectItem key={rate.currency} value={rate.currency}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{rate.currency}</span>
-                        <span className="font-bold ml-4">{rate.rate}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            {showExchangeRates ? (
+              <Select
+                defaultValue={selectedRate.currency}
+                onValueChange={(value) => {
+                  const rate = exchangeRates.find((r) => r.currency === value)
+                  if (rate) setSelectedRate(rate)
+                }}
+              >
+                <SelectTrigger className="bg-green-50 border-green-200 text-green-800 font-bold">
+                  <SelectValue>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{selectedRate.currency}:</span>
+                      <span>{selectedRate.rate}</span>
+                    </div>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Exchange Rates</SelectLabel>
+                    {exchangeRates.map((rate) => (
+                      <SelectItem key={rate.currency} value={rate.currency}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{rate.currency}</span>
+                          <span className="font-bold ml-4">{rate.rate}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="w-40 h-10 bg-gray-100 animate-pulse rounded-md" />
+            )}
           </div>
 
           {/* Notifications */}

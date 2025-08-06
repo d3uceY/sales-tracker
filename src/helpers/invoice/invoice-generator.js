@@ -31,6 +31,11 @@ export const generateInvoiceHTML = (transactionData, businessInfo = {}) => {
       ...businessInfo,
     }
   
+    // Defensive: ensure all numbers are defined and valid
+    const safeNumber = (val) => (typeof val === 'number' && !isNaN(val) ? val : 0)
+    const safeString = (val) => (val !== undefined && val !== null ? val : "")
+    const safeLocale = (val) => safeNumber(val).toLocaleString()
+  
     return `
       <!DOCTYPE html>
       <html>
@@ -197,11 +202,11 @@ export const generateInvoiceHTML = (transactionData, businessInfo = {}) => {
           <tbody>
             <tr>
               <td><strong>${itemPurchased}</strong></td>
-              <td class="text-center">${itemPurchased === "Dollar" ? `$${quantity.toLocaleString()}` : quantity}</td>
-              <td class="text-right">$${(amountUSD / quantity).toFixed(2)}</td>
-              <td class="text-right">₦${exchangeRate.toLocaleString()}</td>
-              <td class="text-right">$${amountUSD.toLocaleString()}</td>
-              <td class="text-right">₦${amountNGN.toLocaleString()}</td>
+              <td class="text-center">${itemPurchased === "Dollar" ? `$${safeLocale(quantity)}` : safeString(quantity)}</td>
+              <td class="text-right">$${(safeNumber(amountUSD) / safeNumber(quantity)).toFixed(2)}</td>
+              <td class="text-right">₦${safeLocale(exchangeRate)}</td>
+              <td class="text-right">$${safeLocale(amountUSD)}</td>
+              <td class="text-right">₦${safeLocale(amountNGN)}</td>
             </tr>
             ${
               otherExpensesUSD > 0
@@ -209,10 +214,10 @@ export const generateInvoiceHTML = (transactionData, businessInfo = {}) => {
             <tr>
               <td><strong>Other Expenses</strong></td>
               <td class="text-center">1</td>
-              <td class="text-right">$${otherExpensesUSD.toFixed(2)}</td>
-              <td class="text-right">₦${exchangeRate.toLocaleString()}</td>
-              <td class="text-right">$${otherExpensesUSD.toFixed(2)}</td>
-              <td class="text-right">₦${otherExpensesNGN.toLocaleString()}</td>
+              <td class="text-right">$${safeNumber(otherExpensesUSD).toFixed(2)}</td>
+              <td class="text-right">₦${safeLocale(exchangeRate)}</td>
+              <td class="text-right">$${safeNumber(otherExpensesUSD).toFixed(2)}</td>
+              <td class="text-right">₦${safeLocale(otherExpensesNGN)}</td>
             </tr>
             `
                 : ""
@@ -223,28 +228,28 @@ export const generateInvoiceHTML = (transactionData, businessInfo = {}) => {
         <div class="totals-section">
           <div class="total-row">
             <span>Subtotal (USD):</span>
-            <span>$${totalUSD.toLocaleString()}</span>
+            <span>$${safeLocale(totalUSD)}</span>
           </div>
           <div class="total-row">
             <span>Subtotal (NGN):</span>
-            <span>₦${totalNGN.toLocaleString()}</span>
+            <span>₦${safeLocale(totalNGN)}</span>
           </div>
           ${
             outstandingBalance > 0
               ? `
           <div class="total-row">
             <span>Previous Balance:</span>
-            <span>$${outstandingBalance.toLocaleString()}</span>
+            <span>$${safeLocale(outstandingBalance)}</span>
           </div>
           <div class="total-row final">
             <span>Total Due:</span>
-            <span>$${(totalUSD + outstandingBalance).toLocaleString()}</span>
+            <span>$${safeLocale(totalUSD + safeNumber(outstandingBalance))}</span>
           </div>
           `
               : `
           <div class="total-row final">
             <span>Total:</span>
-            <span>$${totalUSD.toLocaleString()}</span>
+            <span>$${safeLocale(totalUSD)}</span>
           </div>
           `
           }
@@ -254,7 +259,7 @@ export const generateInvoiceHTML = (transactionData, businessInfo = {}) => {
           Payment Status: ${paymentStatus.toUpperCase()}
           ${
             outstandingBalance > 0 && paymentStatus === "unpaid"
-              ? `<br>Outstanding Balance: $${outstandingBalance.toLocaleString()}`
+              ? `<br>Outstanding Balance: $${safeLocale(outstandingBalance)}`
               : ""
           }
         </div>

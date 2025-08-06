@@ -12,8 +12,9 @@ import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
 import { formatDate } from "../../helpers/date/formatDate"
 import { downloadInvoicePDF } from "../../helpers/invoice/invoice-generator"
-import { getAllVendorTransactions } from "@/helpers/api/transaction"
+import { getAllVendorTransactions, updateTransaction, deleteTransaction } from "@/helpers/api/transaction"
 import Spinner from "@/components/ui/spinner"
+import { toast } from "react-hot-toast"
 
 export default function VendorTransactions() {
   const [transactions, setTransactions] = useState([])
@@ -27,12 +28,20 @@ export default function VendorTransactions() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  useEffect(() => {
+  async function fetchTransactions() {
     setLoading(true)
-    getAllVendorTransactions()
-      .then((res) => setTransactions(res || []))
-      .catch(() => setTransactions([]))
-      .finally(() => setLoading(false))
+    try {
+      const res = await getAllVendorTransactions()
+      setTransactions(res || [])
+    } catch {
+      setTransactions([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTransactions()
   }, [])
 
   // Filter transactions
@@ -70,21 +79,36 @@ export default function VendorTransactions() {
     setIsDeleteModalOpen(true)
   }
 
-  const handleSaveTransaction = (transactionData) => {
-    if (selectedTransaction) {
-      setTransactions(transactions.map((t) => (t.id === selectedTransaction.id ? { ...t, ...transactionData } : t)))
-    } else {
-      const newTransaction = {
-        id: Math.max(...transactions.map((t) => t.id)) + 1,
-        ...transactionData,
+  const handleSaveTransaction = async (transactionData) => {
+    if (transactionData.isEdit && transactionData.transactionId) {
+      try {
+        await updateTransaction(transactionData.transactionId, transactionData, 'vendor')
+        toast.success("Transaction updated successfully!")
+        await fetchTransactions()
+      } catch (err) {
+        toast.error("Failed to update transaction.")
       }
-      setTransactions([...transactions, newTransaction])
+    } else {
+      try {
+        const { createVendorTransaction } = await import("@/helpers/api/transaction")
+        await createVendorTransaction(transactionData.vendorId, transactionData)
+        toast.success("Transaction created successfully!")
+        await fetchTransactions()
+      } catch (err) {
+        toast.error("Failed to create transaction.")
+      }
     }
     setIsTransactionModalOpen(false)
   }
 
-  const handleConfirmDelete = () => {
-    setTransactions(transactions.filter((t) => t.id !== selectedTransaction.id))
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteTransaction(selectedTransaction.id, 'vendor')
+      toast.success("Transaction deleted successfully!")
+      await fetchTransactions()
+    } catch (err) {
+      toast.error("Failed to delete transaction.")
+    }
     setIsDeleteModalOpen(false)
     setSelectedTransaction(null)
   }

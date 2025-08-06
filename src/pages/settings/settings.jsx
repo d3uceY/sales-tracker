@@ -16,6 +16,8 @@ import { getBusinessInfo, updateBusinessInfo } from "@/helpers/api/business"
 import { getExchangeRate, updateExchangeRate } from "@/helpers/api/exchange-rate"
 import { getItemCategories, createItemCategory, updateItemCategory, deleteItemCategory } from "@/helpers/api/item-categories"
 import { useBusiness } from "../../context/BusinessContext"
+import PermissionRestricted from '@/components/permission-restricted'
+import { toggleRolePermission, getAllRolesWithPermissions } from '@/helpers/api/role-permissions'
 
 const initialCategories = [
   { id: 1, name: "Laptop", description: "Laptop computers and accessories", active: true },
@@ -77,7 +79,48 @@ export default function Settings() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
 
-  const [permissions, setPermissions] = useState(userRoles)
+  const [permissions, setPermissions] = useState([])
+  const [permissionsLoading, setPermissionsLoading] = useState(true)
+  const [permissionLoading, setPermissionLoading] = useState(false)
+  const [permissionError, setPermissionError] = useState('')
+  const [permissionSuccess, setPermissionSuccess] = useState('')
+
+  // Fetch roles with permissions
+  const fetchRolesWithPermissions = async () => {
+    setPermissionsLoading(true)
+    setPermissionError('')
+    try {
+      const rolesData = await getAllRolesWithPermissions()
+      // Transform backend data to match frontend structure
+      const transformedRoles = rolesData.map(role => {
+        // Ensure Super Admin always shows full permissions
+        const isSuperAdmin = role.name === 'Super Admin'
+        return {
+          id: role.id,
+          role: role.name,
+          permissions: isSuperAdmin ? {
+            read: true,
+            create: true,
+            update: true,
+            delete: true,
+          } : {
+            read: role.permissions?.canRead || false,
+            create: role.permissions?.canCreate || false,
+            update: role.permissions?.canUpdate || false,
+            delete: role.permissions?.canDelete || false,
+          }
+        }
+      })
+      setPermissions(transformedRoles)
+    } catch (error) {
+      setPermissionError('Failed to load roles and permissions')
+      console.error('Error fetching roles:', error)
+      // Fallback to hardcoded roles if API fails
+      setPermissions(userRoles)
+    } finally {
+      setPermissionsLoading(false)
+    }
+  }
 
   useEffect(() => {
     setBusinessLoading(true)
@@ -114,6 +157,8 @@ export default function Settings() {
       })
       .catch(() => setCategoriesError("Failed to load categories"))
       .finally(() => setCategoriesLoading(false))
+
+    fetchRolesWithPermissions()
   }, [])
 
   const handleSaveBusinessInfo = async () => {
@@ -202,20 +247,53 @@ export default function Settings() {
   }
 
 
-  const togglePermission = (roleId, permission) => {
-    setPermissions(
-      permissions.map((role) =>
-        role.id === roleId
-          ? {
-              ...role,
-              permissions: {
-                ...role.permissions,
-                [permission]: !role.permissions[permission],
-              },
-            }
-          : role,
-      ),
-    )
+  const togglePermission = async (roleId, permission) => {
+    setPermissionLoading(true)
+    setPermissionError('')
+    setPermissionSuccess('')
+    
+    try {
+      // Find the current role to get the current permission value
+      const currentRole = permissions.find(role => role.id === roleId)
+      
+      // Prevent changes to Super Admin permissions
+      if (currentRole.role === 'Super Admin') {
+        setPermissionError('Super Admin permissions cannot be modified. Super Admin always has full access.')
+        setPermissionLoading(false)
+        return
+      }
+      
+      const newValue = !currentRole.permissions[permission]
+      
+      // Make API call to update permission (backend toggles automatically)
+      await toggleRolePermission(roleId, permission)
+      
+      // Update local state only after successful API call
+      setPermissions(
+        permissions.map((role) =>
+          role.id === roleId
+            ? {
+                ...role,
+                permissions: {
+                  ...role.permissions,
+                  [permission]: newValue,
+                },
+              }
+            : role,
+        ),
+      )
+      
+      setPermissionSuccess('Permission updated successfully')
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setPermissionSuccess(''), 3000)
+      
+    } catch (error) {
+      setPermissionError(error.message || 'Failed to update permission')
+      console.error('Permission toggle error:', error)
+    } finally {
+      setPermissionLoading(false)
+    }
   }
 
   return (
@@ -433,64 +511,96 @@ export default function Settings() {
 
         {/* User Permissions */}
         <TabsContent value="permissions">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Shield className="h-5 w-5 text-red-600" />
-                <CardTitle>User Permissions</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Role</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-600">Read</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-600">Create</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-600">Update</th>
-                      <th className="text-center py-3 px-4 font-medium text-gray-600">Delete</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {permissions.map((role) => (
-                      <tr key={role.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4 font-medium text-gray-900">{role.role}</td>
-                        <td className="py-4 px-4 text-center">
-                          <Switch
-                            checked={role.permissions.read}
-                            onCheckedChange={() => togglePermission(role.id, "read")}
-                            size="sm"
-                          />
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <Switch
-                            checked={role.permissions.create}
-                            onCheckedChange={() => togglePermission(role.id, "create")}
-                            size="sm"
-                          />
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <Switch
-                            checked={role.permissions.update}
-                            onCheckedChange={() => togglePermission(role.id, "update")}
-                            size="sm"
-                          />
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <Switch
-                            checked={role.permissions.delete}
-                            onCheckedChange={() => togglePermission(role.id, "delete")}
-                            size="sm"
-                          />
-                        </td>
+          <PermissionRestricted requiredRole="Admin">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-5 w-5 text-red-600" />
+                  <CardTitle>User Permissions</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Permission Messages */}
+                {permissionError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-sm text-red-600">{permissionError}</p>
+                  </div>
+                )}
+                {permissionSuccess && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-sm text-green-600">{permissionSuccess}</p>
+                  </div>
+                )}
+                {permissionsLoading && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-600">Loading roles and permissions...</p>
+                  </div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Role</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-600">Read</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-600">Create</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-600">Update</th>
+                        <th className="text-center py-3 px-4 font-medium text-gray-600">Delete</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+                    </thead>
+                    <tbody>
+                      {permissions.map((role) => {
+                        const isSuperAdmin = role.role === 'Super Admin'
+                        return (
+                        <tr key={role.id} className={`border-b border-gray-100 hover:bg-gray-50 ${isSuperAdmin ? 'bg-blue-50' : ''}`}>
+                          <td className="py-4 px-4 font-medium text-gray-900">
+                            {role.role}
+                            {isSuperAdmin && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                Locked
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <Switch
+                              checked={role.permissions.read}
+                              onCheckedChange={() => togglePermission(role.id, "read")}
+                              disabled={permissionLoading || isSuperAdmin}
+                              size="sm"
+                            />
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <Switch
+                              checked={role.permissions.create}
+                              onCheckedChange={() => togglePermission(role.id, "create")}
+                              disabled={permissionLoading || isSuperAdmin}
+                              size="sm"
+                            />
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <Switch
+                              checked={role.permissions.update}
+                              onCheckedChange={() => togglePermission(role.id, "update")}
+                              disabled={permissionLoading || isSuperAdmin}
+                              size="sm"
+                            />
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <Switch
+                              checked={role.permissions.delete}
+                              onCheckedChange={() => togglePermission(role.id, "delete")}
+                              disabled={permissionLoading || isSuperAdmin}
+                              size="sm"
+                            />
+                          </td>
+                        </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </PermissionRestricted>
         </TabsContent>
       </Tabs>
 

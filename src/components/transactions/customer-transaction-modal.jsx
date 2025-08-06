@@ -66,22 +66,20 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
 
   useEffect(() => {
     if (transaction) {
-      // Find the customer by name to get the ID
-      const selected = (customers || []).find(c => c.name.trim().toLowerCase() === transaction.customerName.trim().toLowerCase());
       setFormData({
-        customerId: selected ? selected.id : "",
-        customCustomerName: transaction.customerName === "Other" ? "" : transaction.customerName,
-        itemPurchased: transaction.itemPurchased === "Other" ? "Other" : transaction.itemPurchased,
-        customItemName: transaction.itemPurchased === "Other" ? "" : transaction.itemPurchased,
-        transactionDate: transaction.transactionDate,
-        quantity: transaction.quantity.toString(),
-        priceNGN: transaction.priceNGN ? transaction.priceNGN.toString() : "",
-        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : exchangeRatesData.sellRate?.toString() || "1500",
-        priceUSD: transaction.priceUSD ? transaction.priceUSD.toString() : "",
-        otherExpensesUSD: transaction.otherExpensesUSD ? transaction.otherExpensesUSD.toString() : "0",
-        otherExpensesNGN: transaction.otherExpensesNGN ? transaction.otherExpensesNGN.toString() : "0",
-        paymentStatus: transaction.paymentStatus,
-        amountPaid: transaction.amountPaid ? transaction.amountPaid.toString() : "",
+        customerId: transaction.customerId || "",
+        customCustomerName: "",
+        itemPurchased: transaction.itemPurchased || "",
+        customItemName: "",
+        transactionDate: transaction.transactionDate || new Date().toISOString().split("T")[0],
+        quantity: transaction.quantity?.toString() || "",
+        priceNGN: transaction.priceNGN?.toString() || "",
+        exchangeRate: transaction.exchangeRate?.toString() || exchangeRatesData?.sellRate?.toString() || "1500",
+        priceUSD: transaction.priceUSD?.toString() || "",
+        otherExpensesUSD: transaction.otherExpensesUSD?.toString() || "0",
+        otherExpensesNGN: transaction.otherExpensesNGN?.toString() || "0",
+        paymentStatus: transaction.paymentStatus || "unpaid",
+        amountPaid: transaction.amountPaid?.toString() || "",
       })
     } else {
       setFormData({
@@ -92,7 +90,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         transactionDate: new Date().toISOString().split("T")[0],
         quantity: "",
         priceNGN: "",
-        exchangeRate: exchangeRatesData.sellRate?.toString() || "1500",
+        exchangeRate: exchangeRatesData?.sellRate?.toString() || "1500",
         priceUSD: "",
         otherExpensesUSD: "0",
         otherExpensesNGN: "0",
@@ -101,7 +99,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
       })
     }
     setErrors({})
-  }, [transaction, isOpen, customers, exchangeRatesData.sellRate])
+  }, [transaction, isOpen, customers, exchangeRatesData?.sellRate])
 
   // Fetch customer balance when customer is selected
   useEffect(() => {
@@ -338,20 +336,6 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                   <span className="text-blue-700">Current Transaction:</span>
                   <p className="font-mono font-medium text-blue-900">${totalUSD.toFixed(2)}</p>
                 </div>
-                <div>
-                  <span className="text-blue-700">Status:</span>
-                  <p
-                    className={`font-medium ${
-                      balanceInfo.color === "green"
-                        ? "text-green-600"
-                        : balanceInfo.color === "red"
-                          ? "text-red-600"
-                          : "text-blue-600"
-                    }`}
-                  >
-                    {balanceInfo.text}
-                  </p>
-                </div>
               </div>
             )}
           </div>
@@ -474,7 +458,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 className={`mt-1 ${errors.exchangeRate ? "border-red-500" : ""}`}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Default sell rate: ₦{exchangeRatesData.sellRate?.toLocaleString() || "1,655"}. 
+                Default sell rate: ₦{exchangeRatesData && exchangeRatesData.sellRate != null ? exchangeRatesData.sellRate.toLocaleString() : "1,655"}. 
                 Changing this will update the default rate.
               </p>
               {errors.exchangeRate && <p className="mt-1 text-sm text-red-600">{errors.exchangeRate}</p>}

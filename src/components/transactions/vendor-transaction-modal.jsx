@@ -73,7 +73,7 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
         transactionDate: transaction.transactionDate,
         quantity: transaction.quantity.toString(),
         priceNGN: transaction.priceNGN ? transaction.priceNGN.toString() : "",
-        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : exchangeRatesData.buyRate?.toString() || "1500",
+        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : (exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toString() : "1500"),
         priceUSD: transaction.priceUSD ? transaction.priceUSD.toString() : "",
         otherExpensesUSD: transaction.otherExpensesUSD ? transaction.otherExpensesUSD.toString() : "0",
         otherExpensesNGN: transaction.otherExpensesNGN ? transaction.otherExpensesNGN.toString() : "0",
@@ -89,7 +89,7 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
         transactionDate: new Date().toISOString().split("T")[0],
         quantity: "",
         priceNGN: "",
-        exchangeRate: exchangeRatesData.buyRate?.toString() || "1500",
+        exchangeRate: exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toString() : "1500",
         priceUSD: "",
         otherExpensesUSD: "0",
         otherExpensesNGN: "0",
@@ -98,7 +98,7 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
       })
     }
     setErrors({})
-  }, [transaction, isOpen, exchangeRatesData.buyRate])
+  }, [transaction, isOpen, exchangeRatesData && exchangeRatesData.buyRate])
 
   // Auto-calculate priceUSD when priceNGN and exchangeRate change
   useEffect(() => {
@@ -156,14 +156,12 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
       if (formData.vendorName === "Other") {
         const newVendor = await createVendor({ name: vendorName })
         vendorId = newVendor.data?.id
-        // Optionally, refresh vendor list
         setVendors((prev) => [...prev, newVendor.data])
       } else {
         const selected = vendors.find((v) => v.name === vendorName)
         vendorId = selected?.id
       }
       if (!vendorId) throw new Error("Vendor not found or created.")
-      
       // Handle item category creation if "Other" is selected
       let finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
       if (formData.itemPurchased === "Other" && formData.customItemName) {
@@ -173,14 +171,11 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
             description: "User added from vendor transaction",
             active: true 
           })
-          // Refresh categories list
           setCategories((prev) => [...prev, newCategory.data])
         } catch (error) {
           console.error('Error creating category:', error)
-          // Continue with the transaction even if category creation fails
         }
       }
-      
       // Update exchange rate if it's different from the default buy rate
       const newExchangeRate = Number.parseFloat(formData.exchangeRate)
       if (newExchangeRate !== exchangeRatesData.buyRate) {
@@ -189,20 +184,15 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
             buyRate: newExchangeRate,
             sellRate: exchangeRatesData.sellRate
           })
-          // Update the context with new rates
           updateExchangeRates({
             buyRate: newExchangeRate,
             sellRate: exchangeRatesData.sellRate
           })
         } catch (error) {
           console.error('Error updating exchange rate:', error)
-          // Continue with the transaction even if rate update fails
         }
       }
-      
       const amountPaidValue = Number.parseFloat(formData.amountPaid) || totalUSD;
-      
-      // Prepare transaction payload
       const transactionData = {
         itemPurchased: finalItemName,
         transactionDate: formData.transactionDate,
@@ -217,10 +207,7 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
         totalUSD: totalUSD,
         amountPaid: amountPaidValue,
       }
-      // Call create transaction API
-      const { createVendorTransaction } = await import("@/helpers/api/transaction")
-      await createVendorTransaction(vendorId, transactionData)
-      onSave && onSave({ ...transactionData, vendorName, vendorId })
+      onSave && onSave({ ...transactionData, vendorName, vendorId, isEdit: !!transaction, transactionId: transaction?.id })
       onClose && onClose()
     } catch (err) {
       setApiError(err.message || "Failed to create transaction.")
@@ -372,7 +359,7 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
                 className={`mt-1 ${errors.exchangeRate ? "border-red-500" : ""}`}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Default buy rate: ₦{exchangeRatesData.buyRate?.toLocaleString() || "1,650"}. 
+                Default buy rate: ₦{exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toLocaleString() : "1,650"}. 
                 Changing this will update the default rate.
               </p>
               {errors.exchangeRate && <p className="mt-1 text-sm text-red-600">{errors.exchangeRate}</p>}

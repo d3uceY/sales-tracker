@@ -20,16 +20,19 @@ export const getTransaction = async (transactionId) => {
   return response.data;
 };
 
-export const updateTransaction = async (transactionId, transactionData) => {
-  const response = await authAxios.put(
-    `/transactions/${transactionId}`,
-    transactionData
-  );
+export const updateTransaction = async (transactionId, transactionData, type) => {
+  let url = type === 'vendor'
+    ? `/vendors/transactions/${transactionId}`
+    : `/transactions/${transactionId}`;
+  const response = await authAxios.put(url, transactionData);
   return response.data;
 };
 
-export const deleteTransaction = async (transactionId) => {
-  const response = await authAxios.delete(`/transactions/${transactionId}`);
+export const deleteTransaction = async (transactionId, type) => {
+  let url = type === 'vendor'
+    ? `/vendors/transactions/${transactionId}`
+    : `/transactions/${transactionId}`;
+  const response = await authAxios.delete(url);
   return response.data;
 };
 

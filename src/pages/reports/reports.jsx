@@ -10,7 +10,7 @@ import { VendorPurchaseReport } from "../../components/reports/vendor-purchase-r
 import { ProfitLossReport } from "../../components/reports/profit-loss-report"
 import { OutstandingPayments } from "../../components/reports/outstanding-payments"
 import { ExchangeRateReport } from "../../components/reports/exchange-rate-report"
-import { FileText, TrendingUp, DollarSign } from "lucide-react"
+import { FileText, TrendingUp, DollarSign, Users } from "lucide-react"
 import { CustomerBalanceReport } from "../../components/reports/customer-balance-report"
 
 export default function Reports() {
@@ -125,39 +125,14 @@ export default function Reports() {
         </Card>
         <Card>
           <CardContent className="p-4 lg:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
-                  Profit Margin
-                  <span className="inline-flex p-1 bg-purple-50 rounded-lg">
-                    <FileText className="h-5 w-5 text-purple-600" />
-                  </span>
-                </p>
-                <p className="text-xl lg:text-2xl font-bold text-purple-600">28.9%</p>
-                <p className="text-xs text-green-500">+2.3% vs last month</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Quick Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
-        <Card>
-          <CardContent className="p-4 lg:p-6">
             <div className="text-center">
-              <p className="text-sm font-medium text-gray-600">Active Customers</p>
+              <p className="text-sm font-medium text-gray-600">Active Customers
+                  <span className="inline-flex p-1 bg-blue-50 rounded-lg">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </span>
+              </p>
               <p className="text-2xl font-bold text-indigo-600">1,247</p>
               <p className="text-xs text-green-500">+12 new this month</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 lg:p-6">
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-600">Exchange Rate</p>
-              <p className="text-2xl font-bold text-emerald-600">₦1,650</p>
-              <p className="text-xs text-emerald-500">+1.85% this week</p>
             </div>
           </CardContent>
         </Card>
