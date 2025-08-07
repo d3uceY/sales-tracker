@@ -19,16 +19,21 @@ export function WalletProvider({ children }) {
   const fetchWalletData = useCallback(async () => {
     setLoading(true);
     setError('');
-    
     try {
       const [balanceData, transactionsData, summaryData] = await Promise.all([
         walletApi.getBalance(),
         walletApi.getTransactions(),
         walletApi.getSummary()
       ]);
-
+      
+      console.log('Wallet API responses:', { balanceData, transactionsData, summaryData });
+      
       setBalance(balanceData.balance || 0);
-      setTransactions(transactionsData.transactions || []);
+      // Handle both array and object with transactions property
+      const transactionsArray = Array.isArray(transactionsData) 
+        ? transactionsData 
+        : transactionsData.transactions || [];
+      setTransactions(transactionsArray);
       setSummary(summaryData.summary || {
         today: { inflow: 0, outflow: 0 },
         week: { inflow: 0, outflow: 0 },
@@ -45,28 +50,12 @@ export function WalletProvider({ children }) {
   const addTransaction = useCallback(async (transactionData) => {
     setLoading(true);
     setError('');
-
     try {
-      const newTransaction = await walletApi.addTransaction({
+      await walletApi.addTransaction({
         ...transactionData,
-        userId: user?.id,
-        createdAt: new Date().toISOString()
+        userId: user?.id
       });
-
-      // Update local state
-      setTransactions(prev => [newTransaction, ...prev]);
-      
-      // Update balance
-      if (transactionData.type === 'inflow') {
-        setBalance(prev => prev + transactionData.amount);
-      } else {
-        setBalance(prev => prev - transactionData.amount);
-      }
-
-      // Refresh summary data
       await fetchWalletData();
-      
-      return newTransaction;
     } catch (err) {
       setError(err.message || 'Failed to add transaction');
       throw err;
@@ -78,18 +67,9 @@ export function WalletProvider({ children }) {
   const updateTransaction = useCallback(async (id, updates) => {
     setLoading(true);
     setError('');
-
     try {
-      const updatedTransaction = await walletApi.updateTransaction(id, updates);
-      
-      setTransactions(prev => 
-        prev.map(t => t.id === id ? updatedTransaction : t)
-      );
-      
-      // Refresh data to recalculate balance and summary
+      await walletApi.updateTransaction(id, updates);
       await fetchWalletData();
-      
-      return updatedTransaction;
     } catch (err) {
       setError(err.message || 'Failed to update transaction');
       throw err;
@@ -101,13 +81,8 @@ export function WalletProvider({ children }) {
   const deleteTransaction = useCallback(async (id) => {
     setLoading(true);
     setError('');
-
     try {
       await walletApi.deleteTransaction(id);
-      
-      setTransactions(prev => prev.filter(t => t.id !== id));
-      
-      // Refresh data to recalculate balance and summary
       await fetchWalletData();
     } catch (err) {
       setError(err.message || 'Failed to delete transaction');

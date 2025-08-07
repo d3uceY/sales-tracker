@@ -38,7 +38,7 @@ export default function WalletTransactionTable({ transactions, loading }) {
             <th className="text-left py-3 px-4 font-medium">Type</th>
             <th className="text-left py-3 px-4 font-medium">Amount</th>
             <th className="text-left py-3 px-4 font-medium">Reason</th>
-            <th className="text-left py-3 px-4 font-medium">Performed By</th>
+            {/* <th className="text-left py-3 px-4 font-medium">Performed By</th> */}
             <th className="text-left py-3 px-4 font-medium">Description</th>
           </tr>
         </thead>
@@ -71,9 +71,9 @@ export default function WalletTransactionTable({ transactions, loading }) {
               <td className="py-3 px-4">
                 {transaction.reason}
               </td>
-              <td className="py-3 px-4">
+              {/* <td className="py-3 px-4">
                 {transaction.performedBy}
-              </td>
+              </td> */}
               <td className="py-3 px-4">
                 <span className="text-muted-foreground text-sm">
                   {transaction.description || '-'}

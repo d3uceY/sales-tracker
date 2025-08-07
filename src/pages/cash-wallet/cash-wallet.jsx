@@ -10,18 +10,18 @@ import PermissionRestricted from '@/components/permission-restricted';
 import WalletTransactionForm from '@/components/wallet/wallet-transaction-form';
 import WalletTransactionTable from '@/components/wallet/wallet-transaction-table';
 import { formatNgnCurrency as formatNaira } from '@/helpers/currency/formatNaira';
-import { formatDate } from '@/helpers/date/formatDate';
 
 export default function CashWallet() {
-  const { 
-    balance, 
-    transactions, 
-    summary, 
-    loading, 
-    fetchWalletData, 
-    addTransaction 
+  const {
+    balance,
+    transactions,
+    summary,
+    loading,
+    error,
+    fetchWalletData,
+    addTransaction
   } = useWallet();
-  
+
   const { canCreate, canRead } = usePermissions();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
@@ -41,7 +41,7 @@ export default function CashWallet() {
       });
       setIsAddModalOpen(false);
     } catch (error) {
-      console.error('Error adding cash:', error);
+      // error handled in context
     }
   };
 
@@ -53,7 +53,7 @@ export default function CashWallet() {
       });
       setIsWithdrawModalOpen(false);
     } catch (error) {
-      console.error('Error withdrawing cash:', error);
+      // error handled in context
     }
   };
 
@@ -66,6 +66,12 @@ export default function CashWallet() {
   return (
     <PermissionRestricted requiredPermission="read">
       <div className="space-y-6 p-6">
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4">
+            {error}
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -74,7 +80,7 @@ export default function CashWallet() {
               Track and manage your physical cash on hand
             </p>
           </div>
-          
+
           <PermissionRestricted requiredPermission="create">
             <div className="flex gap-2">
               <Button 
@@ -97,34 +103,35 @@ export default function CashWallet() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {/* Total Cash on Hand */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Cash on Hand</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatNaira(balance)}</div>
-              <p className="text-xs text-muted-foreground">
-                Current balance
-              </p>
-            </CardContent>
-          </Card>
+        {/* Cash on Hand card remains above */}
+        <Card className="min-w-[350px] min-h-[180px]">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cash on Hand</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatNaira(balance)}</div>
+            <p className="text-xs text-muted-foreground">
+              Current balance
+            </p>
+          </CardContent>
+        </Card>
 
-          {/* Period Filter Tabs */}
-          <div className="col-span-full">
-            <Tabs value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="today">Today</TabsTrigger>
-                <TabsTrigger value="week">This Week</TabsTrigger>
-                <TabsTrigger value="month">This Month</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+        {/* Period Filter Tabs */}
+        <div className="col-span-full">
+          <Tabs value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="today">Today</TabsTrigger>
+              <TabsTrigger value="week">This Week</TabsTrigger>
+              <TabsTrigger value="month">This Month</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
+        {/* Three summary cards in a single row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Total Inflow */}
-          <Card>
+          <Card className="w-full min-h-[180px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Inflow</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
@@ -141,7 +148,7 @@ export default function CashWallet() {
           </Card>
 
           {/* Total Outflow */}
-          <Card>
+          <Card className="w-full min-h-[180px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Outflow</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-600" />
@@ -158,7 +165,7 @@ export default function CashWallet() {
           </Card>
 
           {/* Net Change */}
-          <Card>
+          <Card className="w-full min-h-[180px]">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Net Change</CardTitle>
               <Badge variant={currentSummary.inflow - currentSummary.outflow >= 0 ? "default" : "destructive"}>
@@ -184,7 +191,7 @@ export default function CashWallet() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Transaction History</CardTitle>
-              <div className="flex gap-2">
+              {/* <div className="flex gap-2">
                 <Button variant="outline" size="sm">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
@@ -193,7 +200,7 @@ export default function CashWallet() {
                   <Download className="h-4 w-4 mr-2" />
                   Export
                 </Button>
-              </div>
+              </div> */}
             </div>
           </CardHeader>
           <CardContent>

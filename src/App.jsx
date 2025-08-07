@@ -19,7 +19,7 @@ import { CustomerProvider } from "./context/CustomerContext"
 import { ItemCategoryProvider } from "./context/ItemCategoryContext"
 import { BusinessProvider } from "./context/BusinessContext"
 import { PermissionsProvider } from './context/permissions-context'
-import CashWallet from "./pages/cash-wallet/t cash-wallet"
+import CashWallet from "./pages/cash-wallet/cash-wallet"
 import { WalletProvider } from "./context/wallet-context"
 
 function App() {
