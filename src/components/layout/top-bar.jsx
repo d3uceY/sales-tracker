@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Menu, Search, User } from "lucide-react"
+import { Bell, Menu, Search, User, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useBusiness } from "../../context/BusinessContext"
 
 // This will be replaced with real data from context
@@ -31,6 +31,7 @@ import { useBusiness } from "../../context/BusinessContext"
 export function TopBar({ onMenuClick }) {
   const { exchangeRates: exchangeRatesData, loading: businessLoading } = useBusiness()
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
 
   // Only show dropdown when real rates are loaded
   const showExchangeRates =
@@ -40,19 +41,23 @@ export function TopBar({ onMenuClick }) {
 
   const exchangeRates = showExchangeRates
     ? [
-        { currency: "USD/NGN", rate: `₦${exchangeRatesData.buyRate.toLocaleString()}` },
         { currency: "USD/NGN (Sell)", rate: `₦${exchangeRatesData.sellRate.toLocaleString()}` },
+        { currency: "USD/NGN", rate: `₦${exchangeRatesData.buyRate.toLocaleString()}` },
       ]
     : [];
 
   // Use useEffect to update selectedRate when exchange rates change
   const [selectedRate, setSelectedRate] = useState(exchangeRates[0] || { currency: '', rate: '' })
 
+  // Always default to sell rate if available
   useEffect(() => {
-    if (showExchangeRates) {
-      setSelectedRate(exchangeRates[0])
+    if (showExchangeRates && exchangeRates.length > 0) {
+      const sellRate = exchangeRates.find(r => r.currency === "USD/NGN (Sell)");
+      if (sellRate && selectedRate.currency !== sellRate.currency) {
+        setSelectedRate(sellRate);
+      }
     }
-  }, [exchangeRatesData?.buyRate, exchangeRatesData?.sellRate, showExchangeRates])
+  }, [exchangeRatesData?.buyRate, exchangeRatesData?.sellRate, showExchangeRates]);
 
   const handleLogout = async () => {
     await logout()
@@ -78,11 +83,16 @@ export function TopBar({ onMenuClick }) {
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
+          {/* Wallet Button */}
+          <Button variant="ghost" className="flex items-center gap-2" onClick={() => navigate('/wallet')} title="Wallet">
+            <Wallet className="h-5 w-5 text-blue-600" />
+            <span className="font-medium text-blue-700">Wallet</span>
+          </Button>
           {/* Exchange Rate Dropdown */}
           <div className="hidden md:flex">
             {showExchangeRates ? (
               <Select
-                defaultValue={selectedRate.currency}
+                value={selectedRate.currency}
                 onValueChange={(value) => {
                   const rate = exchangeRates.find((r) => r.currency === value)
                   if (rate) setSelectedRate(rate)

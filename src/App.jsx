@@ -19,15 +19,17 @@ import { CustomerProvider } from "./context/CustomerContext"
 import { ItemCategoryProvider } from "./context/ItemCategoryContext"
 import { BusinessProvider } from "./context/BusinessContext"
 import { PermissionsProvider } from './context/permissions-context'
+import CashWallet from "./pages/cash-wallet/t cash-wallet"
+import { WalletProvider } from "./context/wallet-context"
 
 function App() {
   return (
     <AuthProvider>
       <BusinessProvider>
         <PermissionsProvider>
-          <TransactionProvider>
-            <CustomerProvider>
-              <ItemCategoryProvider>
+          <CustomerProvider>
+            <ItemCategoryProvider>
+              <WalletProvider>
                 <Router>
                   <Routes>
                     {/* Public routes */}
@@ -42,15 +44,16 @@ function App() {
                         <ProtectedRoute>
                           <DashboardLayout>
                             <Routes>
-                              <Route path="/" element={<Dashboard />} />
-                              <Route path="/transactions" element={<Home />} />
-                              <Route path="/transaction-history" element={<TransactionHistory />} />
-                              <Route path="/roles" element={<Roles />} />
-                              <Route path="/users" element={<Users />} />
-                              <Route path="/vendors" element={<VendorTransactions />} />
-                              <Route path="/customers" element={<CustomerTransactions />} />
-                              <Route path="/reports" element={<Reports />} />
-                              <Route path="/settings" element={<Settings />} />
+                              <Route path="/" element={<TransactionProvider><Dashboard /></TransactionProvider>} />
+                              <Route path="/transactions" element={<TransactionProvider><Home /></TransactionProvider>} />
+                              <Route path="/transaction-history" element={<TransactionProvider><TransactionHistory /></TransactionProvider>} />
+                              <Route path="/roles" element={<TransactionProvider><Roles /></TransactionProvider>} />
+                              <Route path="/users" element={<TransactionProvider><Users /></TransactionProvider>} />
+                              <Route path="/vendors" element={<TransactionProvider><VendorTransactions /></TransactionProvider>} />
+                              <Route path="/customers" element={<TransactionProvider><CustomerTransactions /></TransactionProvider>} />
+                              <Route path="/reports" element={<TransactionProvider><Reports /></TransactionProvider>} />
+                              <Route path="/settings" element={<TransactionProvider><Settings /></TransactionProvider>} />
+                              <Route path="/wallet" element={<CashWallet />} />
                             </Routes>
                           </DashboardLayout>
                         </ProtectedRoute>
@@ -58,9 +61,9 @@ function App() {
                     />
                   </Routes>
                 </Router>
-              </ItemCategoryProvider>
-            </CustomerProvider>
-          </TransactionProvider>
+              </WalletProvider>
+            </ItemCategoryProvider>
+          </CustomerProvider>
         </PermissionsProvider>
       </BusinessProvider>
     </AuthProvider>

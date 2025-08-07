@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "../../context/auth-context"
+import { useBusiness } from "../../context/BusinessContext"
 
 export function LoginForm() {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { login, isLoading, error, clearError, isAuthenticated } = useAuth()
+  const { fetchBusinessData } = useBusiness()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -71,6 +73,8 @@ export function LoginForm() {
     setIsSubmitting(false)
 
     if (result.success) {
+      // Refresh business and exchange rate data after login
+      await fetchBusinessData()
       const from = location.state?.from?.pathname || "/"
       navigate(from, { replace: true })
     }
