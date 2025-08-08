@@ -83,8 +83,8 @@ export function RecentInvoices() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-2 font-medium text-gray-600">Customer</th>
-                <th className="text-left py-3 px-2 font-medium text-gray-600">Issue Date</th>
-                <th className="text-left py-3 px-2 font-medium text-gray-600">Due Date</th>
+                <th className="text-left py-3 px-2 font-medium text-gray-600">Date</th>
+                {/* <th className="text-left py-3 px-2 font-medium text-gray-600">Due Date</th> */}
                 <th className="text-right py-3 px-2 font-medium text-gray-600">Amount (NGN)</th>
                 <th className="text-center py-3 px-2 font-medium text-gray-600">Status</th>
               </tr>
@@ -94,7 +94,7 @@ export function RecentInvoices() {
                 <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-2 font-medium text-gray-900">{invoice.customer}</td>
                   <td className="py-3 px-2 text-gray-600">{invoice.issueDate}</td>
-                  <td className="py-3 px-2 text-gray-600">{invoice.dueDate}</td>
+                  {/* <td className="py-3 px-2 text-gray-600">{invoice.dueDate}</td> */}
                   <td className="py-3 px-2 text-right font-mono text-gray-900"> ₦{invoice.amount.toLocaleString()}</td>
                   <td className="py-3 px-2 text-center">
                     <Badge className={statusColors[invoice.status] || "bg-gray-100 text-gray-800"}>

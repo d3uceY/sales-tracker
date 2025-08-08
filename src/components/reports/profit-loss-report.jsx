@@ -86,17 +86,6 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
 
   return (
     <div className="space-y-6">
-      {/* Export Buttons */}
-      {/* <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={onExportPDF}>
-          <FileText className="h-4 w-4 mr-2" />
-          Export PDF
-        </Button>
-        <Button variant="outline" onClick={onExportExcel}>
-          <Download className="h-4 w-4 mr-2" />
-          Export Excel
-        </Button>
-      </div> */}
 
       {/* Current Month Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -237,41 +226,6 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Expense Breakdown Table */}
-      {/* <Card>
-        <CardHeader>
-          <CardTitle>Expense Category Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Category</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Amount (NGN)</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Amount (USD)</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-600">% of Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenseBreakdown.map((expense) => (
-                  <tr key={expense.category} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-4 font-medium text-gray-900">{expense.category}</td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-900">
-                      {formatNgnCurrency(expense.amount)}
-                    </td>
-                    <td className="py-4 px-4 text-right font-mono text-gray-900">{formatUsdCurrency(expense.usd)}</td>
-                    <td className="py-4 px-4 text-center">
-                      <span className="font-medium text-gray-700">{expense.percentage}%</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card> */}
     </div>
   )
 }

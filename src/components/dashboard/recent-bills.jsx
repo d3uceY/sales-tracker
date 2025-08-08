@@ -84,7 +84,7 @@ export function RecentBills() {
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-2 font-medium text-gray-600">Vendor</th>
                 <th className="text-left py-3 px-2 font-medium text-gray-600">Bill Date</th>
-                <th className="text-left py-3 px-2 font-medium text-gray-600">Due Date</th>
+                {/* <th className="text-left py-3 px-2 font-medium text-gray-600">Due Date</th> */}
                 <th className="text-right py-3 px-2 font-medium text-gray-600">Amount (USD)</th>
                 <th className="text-center py-3 px-2 font-medium text-gray-600">Status</th>
               </tr>
@@ -94,7 +94,7 @@ export function RecentBills() {
                 <tr key={bill.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-2 font-medium text-gray-900">{bill.vendor}</td>
                   <td className="py-3 px-2 text-gray-600">{bill.billDate}</td>
-                  <td className="py-3 px-2 text-gray-600">{bill.dueDate}</td>
+                  {/* <td className="py-3 px-2 text-gray-600">{bill.dueDate}</td> */}
                   <td className="py-3 px-2 text-right font-mono text-gray-900">${bill.amount.toLocaleString()}</td>
                   <td className="py-3 px-2 text-center">
                     <Badge className={statusColors[bill.status] || "bg-gray-100 text-gray-800"}>

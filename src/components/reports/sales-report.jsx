@@ -87,17 +87,6 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
 
   return (
     <div className="space-y-6">
-      {/* Export Buttons */}
-      {/* <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={onExportPDF}>
-          <FileText className="h-4 w-4 mr-2" />
-          Export PDF
-        </Button>
-        <Button variant="outline" onClick={onExportExcel}>
-          <Download className="h-4 w-4 mr-2" />
-          Export Excel
-        </Button>
-      </div> */}
 
       <div className="grid  gap-6">
         {/* Sales by Item Type - Pie Chart */}
@@ -130,32 +119,6 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
           </CardContent>
         </Card>
 
-        {/* Monthly Sales Trend */}
-        {/* <Card>
-          <CardHeader>
-            <CardTitle>Monthly Sales Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlySales}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => `₦${(value / 1000000).toFixed(0)}M`} />
-                  <Tooltip
-                    formatter={(value, name) => [
-                      name === "ngn" ? formatNgnCurrency(value) : formatUsdCurrency(value),
-                      name === "ngn" ? "NGN" : "USD",
-                    ]}
-                  />
-                  <Legend />
-                  <Bar dataKey="ngn" fill="#10B981" name="NGN" />
-                  <Bar dataKey="usd" fill="#3B82F6" name="USD" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card> */}
       </div>
 
       {/* Sales Summary Table */}
