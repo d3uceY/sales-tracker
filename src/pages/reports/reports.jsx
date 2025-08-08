@@ -6,10 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SalesReport } from "../../components/reports/sales-report"
-import { VendorPurchaseReport } from "../../components/reports/vendor-purchase-report"
 import { ProfitLossReport } from "../../components/reports/profit-loss-report"
-import { OutstandingPayments } from "../../components/reports/outstanding-payments"
-import { ExchangeRateReport } from "../../components/reports/exchange-rate-report"
 import { FileText, TrendingUp, DollarSign, Users } from "lucide-react"
 import { CustomerBalanceReport } from "../../components/reports/customer-balance-report"
 
@@ -167,30 +164,11 @@ export default function Reports() {
               />
             </TabsContent>
 
-            <TabsContent value="vendor">
-              <VendorPurchaseReport
-                dateFilter={dateFilter}
-                onExportPDF={() => handleExportPDF("Vendor Purchase Report")}
-                onExportExcel={() => handleExportExcel("Vendor Purchase Report")}
-              />
-            </TabsContent>
-
             <TabsContent value="profit-loss">
               <ProfitLossReport
                 dateFilter={dateFilter}
                 onExportPDF={() => handleExportPDF("Profit & Loss Report")}
                 onExportExcel={() => handleExportExcel("Profit & Loss Report")}
-              />
-            </TabsContent>
-
-            <TabsContent value="outstanding">
-              <OutstandingPayments />
-            </TabsContent>
-
-            <TabsContent value="exchange-rate">
-              <ExchangeRateReport
-                onExportPDF={() => handleExportPDF("Exchange Rate Report")}
-                onExportExcel={() => handleExportExcel("Exchange Rate Report")}
               />
             </TabsContent>
 

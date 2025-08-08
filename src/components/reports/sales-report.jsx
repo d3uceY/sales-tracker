@@ -120,50 +120,6 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
         </Card>
 
       </div>
-
-      {/* Sales Summary Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Sales Summary by Category</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Item Type</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-600">Quantity Sold</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Revenue (NGN)</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Revenue (USD)</th>
-                  <th className="text-center py-3 px-4 font-medium text-gray-600">% of Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salesData.map((item, index) => {
-                  const totalRevenue = salesData.reduce((sum, item) => sum + item.value, 0)
-                  const percentage = totalRevenue ? ((item.value / totalRevenue) * 100).toFixed(1) : 0
-                  return (
-                    <tr key={item.name} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-4 px-4 font-medium text-gray-900">{item.name}</td>
-                      <td className="py-4 px-4 text-center text-gray-900">{item.count}</td>
-                      <td className="py-4 px-4 text-right font-mono text-gray-900">{formatNgnCurrency(item.value)}</td>
-                      <td className="py-4 px-4 text-right font-mono text-gray-900">
-                        {formatUsdCurrency(item.usdValue)}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <Badge style={{ backgroundColor: COLORS[index % COLORS.length] }} className="text-white">
-                          {percentage}%
-                        </Badge>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Recent Sales */}
       <Card>
         <CardHeader>
