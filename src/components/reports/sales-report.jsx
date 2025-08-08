@@ -88,7 +88,7 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
   return (
     <div className="space-y-6">
       {/* Export Buttons */}
-      <div className="flex justify-end space-x-2">
+      {/* <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onExportPDF}>
           <FileText className="h-4 w-4 mr-2" />
           Export PDF
@@ -97,9 +97,9 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
           <Download className="h-4 w-4 mr-2" />
           Export Excel
         </Button>
-      </div>
+      </div> */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid  gap-6">
         {/* Sales by Item Type - Pie Chart */}
         <Card>
           <CardHeader>
@@ -131,7 +131,7 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
         </Card>
 
         {/* Monthly Sales Trend */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Monthly Sales Trend</CardTitle>
           </CardHeader>
@@ -155,7 +155,7 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
               </ResponsiveContainer>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Sales Summary Table */}

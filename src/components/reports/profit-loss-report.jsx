@@ -87,7 +87,7 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
   return (
     <div className="space-y-6">
       {/* Export Buttons */}
-      <div className="flex justify-end space-x-2">
+      {/* <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onExportPDF}>
           <FileText className="h-4 w-4 mr-2" />
           Export PDF
@@ -96,7 +96,7 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
           <Download className="h-4 w-4 mr-2" />
           Export Excel
         </Button>
-      </div>
+      </div> */}
 
       {/* Current Month Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -239,7 +239,7 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
       </Card>
 
       {/* Expense Breakdown Table */}
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Expense Category Breakdown</CardTitle>
         </CardHeader>
@@ -271,7 +271,7 @@ export function ProfitLossReport({ dateFilter, onExportPDF, onExportExcel }) {
             </table>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   )
 }
