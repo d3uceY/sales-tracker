@@ -9,15 +9,9 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
 } from "recharts"
-import { Download, FileText } from "lucide-react"
+import { Download } from "lucide-react"
 import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
 import { reportsApi } from "../../helpers/api/reports"
@@ -25,24 +19,7 @@ import Spinner from "@/components/ui/spinner"
 
 const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"]
 
-const getDateRangeFromFilter = (dateFilter) => {
-  const now = new Date()
-  let startDate = null
-  let endDate = null
-  if (dateFilter === "today") {
-    startDate = endDate = now.toISOString().split("T")[0]
-  } else if (dateFilter === "this-week") {
-    const first = now.getDate() - now.getDay()
-    startDate = new Date(now.setDate(first)).toISOString().split("T")[0]
-    endDate = new Date().toISOString().split("T")[0]
-  } else if (dateFilter === "this-month") {
-    startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`
-    endDate = new Date().toISOString().split("T")[0]
-  }
-  return { startDate, endDate }
-}
-
-export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
+export function SalesReport({ dateFilter, customDateFrom, customDateTo, onExportPDF, onExportExcel }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -53,11 +30,13 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
     setError("")
     const fetchData = async () => {
       try {
-        let params = {}
-        if (dateFilter && dateFilter !== "custom") {
-          params = getDateRangeFromFilter(dateFilter)
+        const params = {
+          dateFilter,
+          ...(dateFilter === "custom" && customDateFrom && customDateTo && {
+            customDateFrom,
+            customDateTo,
+          }),
         }
-        // TODO: handle custom range if needed
         const res = await reportsApi.getSalesSummary(params)
         if (isMounted) {
           setData(res.data)
@@ -72,10 +51,9 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
     }
     fetchData()
     return () => { isMounted = false }
-  }, [dateFilter])
+  }, [dateFilter, customDateFrom, customDateTo])
 
   const salesData = useMemo(() => data?.salesData || [], [data])
-  const monthlySales = useMemo(() => data?.monthlySales || [], [data])
   const recentSales = useMemo(() => data?.recentSales || [], [data])
 
   if (loading) {
@@ -87,39 +65,36 @@ export function SalesReport({ dateFilter, onExportPDF, onExportExcel }) {
 
   return (
     <div className="space-y-6">
+      {/* Sales by Item Type - Pie Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Sales by Item Type</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={salesData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {salesData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatNgnCurrency(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid  gap-6">
-        {/* Sales by Item Type - Pie Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales by Item Type</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={salesData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {salesData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatNgnCurrency(value)} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
       {/* Recent Sales */}
       <Card>
         <CardHeader>

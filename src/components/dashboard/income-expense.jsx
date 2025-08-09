@@ -4,6 +4,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { TrendingUp, TrendingDown } from "lucide-react"
+import { formatNgnCurrency } from "@/helpers/currency/formatNaira"
+
+// Helper function to format axis values dynamically
+const formatYAxisTick = (value) => {
+  if (value >= 1000000) {
+    return `₦${(value / 1000000).toFixed(1)}M`;
+  } else if (value >= 1000) {
+    return `₦${(value / 1000).toFixed(0)}K`;
+  }
+  return `₦${value}`;
+};
+
+// Format tooltip values with appropriate units
+const formatTooltipValue = (value) => {
+  if (value >= 1000000) {
+    return `₦${(value / 1000000).toFixed(2)}M`;
+  } else if (value >= 1000) {
+    return `₦${(value / 1000).toFixed(1)}K`;
+  }
+  return `₦${value.toFixed(2)}`;
+};
 
 export function IncomeExpense() {
   const [data, setData] = useState(null)
@@ -85,19 +106,19 @@ export function IncomeExpense() {
               <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Income</span>
             </div>
-            <span className="text-base lg:text-lg font-bold text-green-600">${data.today.income.toLocaleString()}</span>
+            <span className="text-base lg:text-lg font-bold text-green-600">{formatNgnCurrency(data.today.income)}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Expense</span>
             </div>
-            <span className="text-base lg:text-lg font-bold text-red-600">${data.today.expense.toLocaleString()}</span>
+            <span className="text-base lg:text-lg font-bold text-red-600">{formatNgnCurrency(data.today.expense)}</span>
           </div>
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">Net Profit</span>
-              <span className="text-base lg:text-lg font-bold text-blue-600">${data.today.netProfit.toLocaleString()}</span>
+              <span className="text-sm font-medium text-gray-900">Net Income</span>
+              <span className="text-base lg:text-lg font-bold text-blue-600">{formatNgnCurrency(data.today.netProfit)}</span>
             </div>
           </div>
         </CardContent>
@@ -114,19 +135,19 @@ export function IncomeExpense() {
               <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Income</span>
             </div>
-            <span className="text-base lg:text-lg font-bold text-green-600">${data.thisMonth.income.toLocaleString()}</span>
+            <span className="text-base lg:text-lg font-bold text-green-600">{formatNgnCurrency(data.thisMonth.income)}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
               <span className="text-sm text-gray-600">Expense</span>
             </div>
-            <span className="text-base lg:text-lg font-bold text-red-600">${data.thisMonth.expense.toLocaleString()}</span>
+            <span className="text-base lg:text-lg font-bold text-red-600">{formatNgnCurrency(data.thisMonth.expense)}</span>
           </div>
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">Net Profit</span>
-              <span className="text-base lg:text-lg font-bold text-blue-600">${data.thisMonth.netProfit.toLocaleString()}</span>
+              <span className="text-sm font-medium text-gray-900">Net Income</span>
+              <span className="text-base lg:text-lg font-bold text-blue-600">{formatNgnCurrency(data.thisMonth.netProfit)}</span>
             </div>
           </div>
         </CardContent>
@@ -143,9 +164,20 @@ export function IncomeExpense() {
               <LineChart data={data.monthlyTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" stroke="#6b7280" fontSize={10} />
-                <YAxis stroke="#6b7280" fontSize={10} tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`} />
+                <YAxis 
+                  stroke="#6b7280" 
+                  fontSize={10}
+                  width={50}
+                  tickFormatter={formatYAxisTick}
+                  domain={['auto', 'auto']}
+                  tick={{ fill: '#6b7280' }}
+                />
                 <Tooltip
-                  formatter={(value, name) => [`$${value.toLocaleString()}`, name === "income" ? "Income" : "Expense"]}
+                  formatter={(value, name) => [
+                    formatTooltipValue(value), 
+                    name === 'income' ? 'Income' : 'Expense'
+                  ]}
+                  labelStyle={{ color: "#374151" }}
                   contentStyle={{
                     backgroundColor: "white",
                     border: "1px solid #e5e7eb",
@@ -153,8 +185,22 @@ export function IncomeExpense() {
                     fontSize: "12px",
                   }}
                 />
-                <Line type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                <Line 
+                  type="monotone" 
+                  dataKey="income" 
+                  stroke="#10b981" 
+                  strokeWidth={2} 
+                  dot={{ r: 3 }} 
+                  name="Income"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="expense" 
+                  stroke="#ef4444" 
+                  strokeWidth={2} 
+                  dot={{ r: 3 }} 
+                  name="Expense"
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>

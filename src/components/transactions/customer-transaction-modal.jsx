@@ -12,6 +12,7 @@ import {
   calculateNewBalance,
   formatBalanceStatus,
 } from "../../helpers/balance/balance-calculator"
+import { formatMoney, parseMoney } from "../../utils/formatters"
 import { useCustomerData } from "../../context/CustomerContext"
 import { getItemCategories, createItemCategory } from "../../helpers/api/item-categories"
 import { getCustomerBalanceByName } from "../../helpers/api/customers"
@@ -298,11 +299,51 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
     }
   }
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    
+    // Format money fields with commas as user types
+    if (['priceNGN', 'exchangeRate', 'priceUSD', 'otherExpensesUSD', 'otherExpensesNGN', 'amountPaid'].includes(name)) {
+      const numericValue = value.replace(/[^0-9.]/g, ''); // Remove non-numeric characters except decimal point
+      const parts = numericValue.split('.');
+      
+      // Only allow numbers with up to 2 decimal places
+      if (parts.length > 1 && parts[1].length > 2) {
+        return; // Don't update if more than 2 decimal places
+      }
+      
+      // Parse the numeric value to remove any extra decimal points
+      const parsedValue = parseFloat(numericValue) || 0;
+      
+      // Update the form data with the parsed value
+      setFormData((prev) => ({ ...prev, [name]: numericValue }));
+      
+      // Also update the calculated fields if needed
+      if (name === 'priceNGN' || name === 'exchangeRate') {
+        if (formData.priceNGN && formData.exchangeRate) {
+          const ngn = name === 'priceNGN' ? parsedValue : parseFloat(formData.priceNGN) || 0;
+          const rate = name === 'exchangeRate' ? parsedValue : parseFloat(formData.exchangeRate) || 1;
+          const usd = ngn / rate;
+          setFormData(prev => ({
+            ...prev,
+            priceUSD: isNaN(usd) ? '' : usd.toFixed(2)
+          }));
+        }
+      } else if (name === 'otherExpensesUSD') {
+        const usd = parsedValue || 0;
+        const rate = parseFloat(formData.exchangeRate) || 1;
+        const ngn = usd * rate;
+        setFormData(prev => ({
+          ...prev,
+          otherExpensesNGN: isNaN(ngn) ? '0' : ngn.toFixed(2)
+        }));
+      }
+      
+      return;
     }
+    
+    // For non-money fields, update normally
+    setFormData((prev) => ({ ...prev, [name]: value }));
   }
 
   const customerOptions = (customers || []).map(c => ({ id: c.id, name: c.name })).concat({ id: "Other", name: "Other" });
@@ -330,11 +371,11 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
                   <span className="text-blue-700">Previous Balance:</span>
-                  <p className="font-mono font-medium text-blue-900">${previousBalance.toFixed(2)}</p>
+                  <p className="font-mono font-medium text-blue-900">{formatMoney(previousBalance, 2)}</p>
                 </div>
                 <div>
                   <span className="text-blue-700">Current Transaction:</span>
-                  <p className="font-mono font-medium text-blue-900">${totalUSD.toFixed(2)}</p>
+                  <p className="font-mono font-medium text-blue-900">{formatMoney(totalUSD, 2)}</p>
                 </div>
               </div>
             )}
@@ -347,7 +388,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <Label htmlFor="customerId" className="text-sm font-medium text-gray-700">
                 Customer Name *
               </Label>
-              <Select value={formData.customerId} onValueChange={(value) => handleChange("customerId", value)} disabled={loading || customers.length === 0}>
+              <Select value={formData.customerId} onValueChange={(value) => setFormData((prev) => ({ ...prev, customerId: value }))} disabled={loading || customers.length === 0}>
                 <SelectTrigger className={`mt-1 ${errors.customerId ? "border-red-500" : ""}`}>
                   <SelectValue placeholder={loading ? "Loading customers..." : "Select customer"} />
                 </SelectTrigger>
@@ -363,7 +404,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 <Input
                   placeholder="Enter customer name"
                   value={formData.customCustomerName}
-                  onChange={(e) => handleChange("customCustomerName", e.target.value)}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, customCustomerName: e.target.value }))}
                   className="mt-2"
                 />
               )}
@@ -374,7 +415,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <Label htmlFor="itemPurchased" className="text-sm font-medium text-gray-700">
                 Item Purchased *
               </Label>
-              <Select value={formData.itemPurchased} onValueChange={(value) => handleChange("itemPurchased", value)}>
+              <Select value={formData.itemPurchased} onValueChange={(value) => setFormData((prev) => ({ ...prev, itemPurchased: value }))}>
                 <SelectTrigger className={`mt-1 ${errors.itemPurchased ? "border-red-500" : ""}`}>
                   <SelectValue placeholder={loadingCategories ? "Loading items..." : "Select item type"} />
                 </SelectTrigger>
@@ -391,7 +432,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 <Input
                   placeholder="Enter item name"
                   value={formData.customItemName}
-                  onChange={(e) => handleChange("customItemName", e.target.value)}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, customItemName: e.target.value }))}
                   className="mt-2"
                 />
               )}
@@ -406,7 +447,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 id="transactionDate"
                 type="date"
                 value={formData.transactionDate}
-                onChange={(e) => handleChange("transactionDate", e.target.value)}
+                onChange={(e) => setFormData((prev) => ({ ...prev, transactionDate: e.target.value }))}
                 className={`mt-1 ${errors.transactionDate ? "border-red-500" : ""}`}
               />
               {errors.transactionDate && <p className="mt-1 text-sm text-red-600">{errors.transactionDate}</p>}
@@ -421,7 +462,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 type="number"
                 step="0.01"
                 value={formData.quantity}
-                onChange={(e) => handleChange("quantity", e.target.value)}
+                onChange={(e) => setFormData((prev) => ({ ...prev, quantity: e.target.value }))}
                 placeholder={formData.itemPurchased === "Dollar" ? "Amount in USD" : "Number of units"}
                 className={`mt-1 ${errors.quantity ? "border-red-500" : ""}`}
               />
@@ -432,15 +473,25 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <Label htmlFor="priceNGN" className="text-sm font-medium text-gray-700">
                 Price (NGN) *
               </Label>
-              <Input
-                id="priceNGN"
-                type="number"
-                step="0.01"
-                value={formData.priceNGN}
-                onChange={(e) => handleChange("priceNGN", e.target.value)}
-                placeholder="0.00"
-                className={`mt-1 ${errors.priceNGN ? "border-red-500" : ""}`}
-              />
+              <div className="relative">
+                <Input
+                  id="priceNGN"
+                  name="priceNGN"
+                  type="text"
+                  value={formData.priceNGN}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseMoney(e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      priceNGN: isNaN(num) ? '' : num.toString()
+                    }));
+                  }}
+                  placeholder="0.00"
+                  className={`pr-8 ${errors.priceNGN ? "border-red-500" : ""}`}
+                />
+                <span className="absolute right-2 top-2 text-gray-500">₦</span>
+              </div>
               {errors.priceNGN && <p className="mt-1 text-sm text-red-600">{errors.priceNGN}</p>}
             </div>
 
@@ -448,15 +499,24 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <Label htmlFor="exchangeRate" className="text-sm font-medium text-gray-700">
                 Exchange Rate (USD to NGN) *
               </Label>
-              <Input
-                id="exchangeRate"
-                type="number"
-                step="0.01"
-                value={formData.exchangeRate}
-                onChange={(e) => handleChange("exchangeRate", e.target.value)}
-                placeholder="1500.00"
-                className={`mt-1 ${errors.exchangeRate ? "border-red-500" : ""}`}
-              />
+              <div className="relative">
+                <Input
+                  id="exchangeRate"
+                  name="exchangeRate"
+                  type="text"
+                  value={formData.exchangeRate}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseMoney(e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      exchangeRate: isNaN(num) ? '' : num.toString()
+                    }));
+                  }}
+                  placeholder="1500"
+                  className={errors.exchangeRate ? "border-red-500" : ""}
+                />
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Default sell rate: ₦{exchangeRatesData && exchangeRatesData.sellRate != null ? exchangeRatesData.sellRate.toLocaleString() : "1,655"}. 
                 Changing this will update the default rate.
@@ -468,16 +528,18 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <Label htmlFor="priceUSD" className="text-sm font-medium text-gray-700">
                 Price (USD)
               </Label>
-              <Input
-                id="priceUSD"
-                type="number"
-                step="0.01"
-                value={formData.priceUSD}
-                readOnly
-                placeholder="0.00"
-                className="mt-1 bg-gray-100 cursor-not-allowed"
-                tabIndex={-1}
-              />
+              <div className="relative">
+                <Input
+                  id="priceUSD"
+                  name="priceUSD"
+                  type="text"
+                  value={formatMoney(formData.priceUSD || 0, 2)}
+                  readOnly
+                  placeholder="0.00"
+                  className="bg-gray-100"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
+              </div>
               <p className="text-xs text-gray-500 mt-1">Auto-calculated from NGN price</p>
             </div>
 
@@ -485,19 +547,29 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <Label htmlFor="amountPaid" className="text-sm font-medium text-gray-700">
                 Amount Paid (NGN)
               </Label>
-              <Input
-                id="amountPaid"
-                type="number"
-                step="0.01"
-                value={formData.amountPaid}
-                onChange={(e) => handleChange("amountPaid", e.target.value)}
-                placeholder="0.00"
-                className="mt-1"
-              />
+              <div className="relative">
+                <Input
+                  id="amountPaid"
+                  name="amountPaid"
+                  type="text"
+                  value={formData.amountPaid}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseMoney(e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      amountPaid: isNaN(num) ? '' : Math.min(num, totalUSD).toString()
+                    }));
+                  }}
+                  placeholder="0.00"
+                  className="pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
+              </div>
               <p className="text-xs text-gray-500 mt-1">Enter the amount paid by customer in Naira</p>
               {/* Total Paid Including Previous Balance */}
               <div className="mt-1 text-xs text-blue-700">
-                Total Paid (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">₦{((Number(formData.amountPaid) || 0) + (Number(previousBalance) || 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                Total Paid (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">{formatMoney((Number(formData.amountPaid) || 0) + (Number(previousBalance) || 0), 2)}</span>
               </div>
             </div>
 
@@ -505,37 +577,50 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <Label htmlFor="otherExpensesUSD" className="text-sm font-medium text-gray-700">
                 Other Expenses (USD)
               </Label>
-              <Input
-                id="otherExpensesUSD"
-                type="number"
-                step="0.01"
-                value={formData.otherExpensesUSD}
-                onChange={(e) => handleChange("otherExpensesUSD", e.target.value)}
-                placeholder="0.00"
-                className="mt-1"
-              />
+              <div className="relative">
+                <Input
+                  id="otherExpensesUSD"
+                  name="otherExpensesUSD"
+                  type="text"
+                  value={formData.otherExpensesUSD}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseMoney(e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      otherExpensesUSD: isNaN(num) ? '0' : num.toString()
+                    }));
+                  }}
+                  placeholder="0.00"
+                  className="pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
+              </div>
             </div>
 
             <div>
               <Label htmlFor="otherExpensesNGN" className="text-sm font-medium text-gray-700">
                 Other Expenses (NGN)
               </Label>
-              <Input
-                id="otherExpensesNGN"
-                type="number"
-                step="0.01"
-                value={formData.otherExpensesNGN}
-                onChange={(e) => handleChange("otherExpensesNGN", e.target.value)}
-                placeholder="0.00"
-                className="mt-1"
-              />
+              <div className="relative">
+                <Input
+                  id="otherExpensesNGN"
+                  name="otherExpensesNGN"
+                  type="text"
+                  value={formatMoney(formData.otherExpensesNGN || 0, 2)}
+                  readOnly
+                  placeholder="0.00"
+                  className="bg-gray-100 pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">₦</span>
+              </div>
             </div>
 
             <div className="md:col-span-2">
               <Label htmlFor="paymentStatus" className="text-sm font-medium text-gray-700">
                 Payment Status
               </Label>
-              <Select value={formData.paymentStatus} onValueChange={(value) => handleChange("paymentStatus", value)}>
+              <Select value={formData.paymentStatus} onValueChange={(value) => setFormData((prev) => ({ ...prev, paymentStatus: value }))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>

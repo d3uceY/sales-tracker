@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,11 +9,42 @@ import { SalesReport } from "../../components/reports/sales-report"
 import { ProfitLossReport } from "../../components/reports/profit-loss-report"
 import { FileText, TrendingUp, DollarSign, Users } from "lucide-react"
 import { CustomerBalanceReport } from "../../components/reports/customer-balance-report"
+import { reportsApi } from "../../helpers/api/reports"
+import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
+import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
+import Spinner from "@/components/ui/spinner"
 
 export default function Reports() {
   const [dateFilter, setDateFilter] = useState("this-month")
   const [customDateFrom, setCustomDateFrom] = useState("")
   const [customDateTo, setCustomDateTo] = useState("")
+  const [summaryCards, setSummaryCards] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchSummaryCards = async () => {
+      try {
+        setLoading(true)
+        setError("")
+        const params = {
+          dateFilter,
+          ...(dateFilter === "custom" && customDateFrom && customDateTo && {
+            customDateFrom,
+            customDateTo,
+          }),
+        }
+        const data = await reportsApi.getSummaryCards(params)
+        setSummaryCards(data)
+      } catch (err) {
+        setError(err?.response?.data?.message || err?.message || "Failed to load summary data.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSummaryCards()
+  }, [dateFilter, customDateFrom, customDateTo])
 
   const handleExportPDF = (reportType) => {
     // Mock export functionality
@@ -23,6 +54,13 @@ export default function Reports() {
   const handleExportExcel = (reportType) => {
     // Mock export functionality
     alert(`Exporting ${reportType} as Excel...`)
+  }
+
+  const formatChange = (change) => {
+    if (!change && change !== 0) return null
+    const isPositive = change >= 0
+    const sign = isPositive ? "+" : ""
+    return `${sign}${change.toFixed(1)}%`
   }
 
   return (
@@ -68,72 +106,116 @@ export default function Reports() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Card>
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
-                  Total Revenue
-                  <span className="inline-flex p-1 bg-green-50 rounded-lg">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                  </span>
-                </p>
-                <p className="text-xl lg:text-2xl font-bold text-green-600">₦45,250,000</p>
-                <p className="text-xs text-gray-500">$27,424 USD</p>
-                <p className="text-xs text-green-500">+15.2% vs last month</p>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4 lg:p-6">
+                <div className="flex items-center justify-center h-20">
+                  <Spinner />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="text-center py-8 text-red-500">{error}</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <Card>
+            <CardContent className="p-4 lg:p-6">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
+                    Total Revenue
+                    <span className="inline-flex p-1 bg-green-50 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                    </span>
+                  </p>
+                  <p className="text-xl lg:text-2xl font-bold text-green-600">
+                    {formatNgnCurrency(summaryCards?.totalRevenue?.value || 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatUsdCurrency(summaryCards?.totalRevenue?.value || 0)}
+                  </p>
+                  {summaryCards?.totalRevenue?.change !== null && (
+                    <p className={`text-xs ${summaryCards?.totalRevenue?.change >= 0 ? "text-green-500" : "text-red-500"}`}>
+                      {formatChange(summaryCards?.totalRevenue?.change)} vs last month
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
-                  Total Expenses
-                  <span className="inline-flex p-1 bg-red-50 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-red-600" />
-                  </span>
-                </p>
-                <p className="text-xl lg:text-2xl font-bold text-red-600">₦32,180,000</p>
-                <p className="text-xs text-gray-500">$19,503 USD</p>
-                <p className="text-xs text-red-500">+8.7% vs last month</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 lg:p-6">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
+                    Total Expenses
+                    <span className="inline-flex p-1 bg-red-50 rounded-lg">
+                      <DollarSign className="h-5 w-5 text-red-600" />
+                    </span>
+                  </p>
+                  <p className="text-xl lg:text-2xl font-bold text-red-600">
+                    {formatNgnCurrency(summaryCards?.totalExpenses?.value || 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatUsdCurrency(summaryCards?.totalExpenses?.value || 0)}
+                  </p>
+                  {summaryCards?.totalExpenses?.change !== null && (
+                    <p className={`text-xs ${summaryCards?.totalExpenses?.change >= 0 ? "text-red-500" : "text-green-500"}`}>
+                      {formatChange(summaryCards?.totalExpenses?.change)} vs last month
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 lg:p-6">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
-                  Net Profit
-                  <span className="inline-flex p-1 bg-blue-50 rounded-lg">
-                    <TrendingUp className="h-5 w-5 text-blue-600" />
-                  </span>
-                </p>
-                <p className="text-xl lg:text-2xl font-bold text-blue-600">₦13,070,000</p>
-                <p className="text-xs text-gray-500">$7,921 USD</p>
-                <p className="text-xs text-green-500">+28.4% vs last month</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 lg:p-6">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-600 flex items-center gap-2 truncate">
+                    Net Profit
+                    <span className="inline-flex p-1 bg-blue-50 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                    </span>
+                  </p>
+                  <p className="text-xl lg:text-2xl font-bold text-blue-600">
+                    {formatNgnCurrency(summaryCards?.netProfit?.value || 0)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatUsdCurrency(summaryCards?.netProfit?.value || 0)}
+                  </p>
+                  {summaryCards?.netProfit?.change !== null && (
+                    <p className={`text-xs ${summaryCards?.netProfit?.change >= 0 ? "text-green-500" : "text-red-500"}`}>
+                      {formatChange(summaryCards?.netProfit?.change)} vs last month
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 lg:p-6">
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-600">Active Customers
-                  <span className="inline-flex p-1 bg-blue-50 rounded-lg">
-                    <Users className="h-5 w-5 text-blue-600" />
-                  </span>
-              </p>
-              <p className="text-2xl font-bold text-indigo-600">1,247</p>
-              <p className="text-xs text-green-500">+12 new this month</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 lg:p-6">
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-600">Active Customers
+                    <span className="inline-flex p-1 bg-blue-50 rounded-lg">
+                      <Users className="h-5 w-5 text-blue-600" />
+                    </span>
+                </p>
+                <p className="text-2xl font-bold text-indigo-600">{summaryCards?.activeCustomers?.value || 0}</p>
+                {summaryCards?.activeCustomers?.change !== null && (
+                  <p className={`text-xs ${summaryCards?.activeCustomers?.change >= 0 ? "text-green-500" : "text-red-500"}`}>
+                    {formatChange(summaryCards?.activeCustomers?.change)} vs last month
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Reports Tabs */}
       <Card>
@@ -143,7 +225,7 @@ export default function Reports() {
         <CardContent>
           <Tabs defaultValue="sales" className="space-y-4 lg:space-y-6">
             <div className="overflow-x-auto">
-              <TabsList className="grid w-full grid-cols-6 min-w-max">
+              <TabsList className="grid w-full grid-cols-3 min-w-max">
                 <TabsTrigger value="sales" className="text-xs lg:text-sm">
                   Sales Report
                 </TabsTrigger>
@@ -159,6 +241,8 @@ export default function Reports() {
             <TabsContent value="sales">
               <SalesReport
                 dateFilter={dateFilter}
+                customDateFrom={customDateFrom}
+                customDateTo={customDateTo}
                 onExportPDF={() => handleExportPDF("Sales Report")}
                 onExportExcel={() => handleExportExcel("Sales Report")}
               />
@@ -167,6 +251,8 @@ export default function Reports() {
             <TabsContent value="profit-loss">
               <ProfitLossReport
                 dateFilter={dateFilter}
+                customDateFrom={customDateFrom}
+                customDateTo={customDateTo}
                 onExportPDF={() => handleExportPDF("Profit & Loss Report")}
                 onExportExcel={() => handleExportExcel("Profit & Loss Report")}
               />
@@ -174,7 +260,6 @@ export default function Reports() {
 
             <TabsContent value="customer-balance">
               <CustomerBalanceReport
-                dateFilter={dateFilter}
                 onExportPDF={() => handleExportPDF("Customer Balance Report")}
                 onExportExcel={() => handleExportExcel("Customer Balance Report")}
               />

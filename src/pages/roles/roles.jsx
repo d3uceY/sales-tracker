@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { RoleModal } from "../../components/admin/role-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { Plus, Search, Edit, Trash2, Users } from "lucide-react"
-import { getRoles, createRole, updateRole, deleteRole, getRoleStats } from "@/helpers/api/roles"
-import { getUsers } from "@/helpers/api/users"
+import { getRoles, createRole, updateRole, deleteRole } from "@/helpers/api/roles"
+import { getUsers, getUserStats } from "@/helpers/api/users"
 import { toast } from "react-hot-toast"
 import Spinner from "@/components/ui/spinner"
 import PermissionRestricted from '@/components/permission-restricted'
@@ -65,15 +65,18 @@ export default function Roles() {
   // Fetch users from API
   const fetchUsers = useCallback(async () => {
     try {
-      // Fetch all users (or enough to get active count)
-      const params = { page: 1, limit: 1000 } // adjust limit as needed
-      const response = await getUsers(params)
-      // Try to support different API shapes
-      const usersData = response.data || response.users || []
-      setUsers(Array.isArray(usersData) ? usersData : [])
+      // Use the dedicated stats endpoint instead of fetching all users
+      const statsData = await getUserStats()
+      setStats((prev) => ({
+        ...prev,
+        activeUsers: statsData.activeUsers || statsData.active || 0
+      }))
     } catch (err) {
-      console.error("Error fetching users for active count:", err)
-      setUsers([])
+      console.error("Error fetching user stats:", err)
+      setStats((prev) => ({
+        ...prev,
+        activeUsers: 0
+      }))
     }
   }, [])
 
@@ -88,7 +91,7 @@ export default function Roles() {
     fetchUsers()
   }, [fetchUsers])
 
-  // Compute most used role and active users from state
+  // Compute most used role from state
   useEffect(() => {
     // Most used role: role with highest userCount
     let mostUsedRole = "N/A"
@@ -101,14 +104,11 @@ export default function Roles() {
         }
       }
     }
-    // Active users: users with status === "active"
-    const activeUsers = users.filter((u) => u.status === "active").length
     setStats((prev) => ({
       ...prev,
-      mostUsedRole,
-      activeUsers
+      mostUsedRole
     }))
-  }, [roles, users])
+  }, [roles])
 
   const handleAddRole = () => {
     setSelectedRole(null)

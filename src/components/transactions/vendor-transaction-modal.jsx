@@ -11,10 +11,11 @@ import { getVendors, createVendor } from "@/helpers/api/vendors"
 import { getItemCategories, createItemCategory } from "@/helpers/api/item-categories"
 import { useBusiness } from "../../context/BusinessContext"
 import { updateExchangeRate } from "../../helpers/api/exchange-rate"
+import { formatMoney, parseMoney } from "../../utils/formatters"
 
 const vendorNames = ["Best Buy", "Amazon", "Newegg", "B&H Photo", "Walmart", "Currency Exchange", "Other"]
 
-export function VendorTransactionModal({ isOpen, onClose, onSave, transaction }) {
+export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction }) => {
   const { exchangeRates: exchangeRatesData, updateExchangeRates } = useBusiness()
   const [formData, setFormData] = useState({
     vendorName: "",
@@ -103,8 +104,8 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
   // Auto-calculate priceUSD when priceNGN and exchangeRate change
   useEffect(() => {
     if (formData.priceNGN && formData.exchangeRate) {
-      const ngn = parseFloat(formData.priceNGN) || 0;
-      const rate = parseFloat(formData.exchangeRate) || 1;
+      const ngn = parseFloat(formData.priceNGN.replace(/,/g, '')) || 0;
+      const rate = parseFloat(formData.exchangeRate.replace(/,/g, '')) || 1;
       const usd = ngn / rate;
       setFormData((prev) => ({ ...prev, priceUSD: usd ? usd.toFixed(2) : "" }));
     }
@@ -113,16 +114,16 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
   // Auto-calculate otherExpensesNGN when otherExpensesUSD and exchangeRate change
   useEffect(() => {
     if (formData.otherExpensesUSD && formData.exchangeRate) {
-      const usd = parseFloat(formData.otherExpensesUSD) || 0;
-      const rate = parseFloat(formData.exchangeRate) || 1;
+      const usd = parseFloat(formData.otherExpensesUSD.replace(/,/g, '')) || 0;
+      const rate = parseFloat(formData.exchangeRate.replace(/,/g, '')) || 1;
       const ngn = usd * rate;
       setFormData((prev) => ({ ...prev, otherExpensesNGN: ngn ? ngn.toFixed(2) : "0" }));
     }
   }, [formData.otherExpensesUSD, formData.exchangeRate]);
 
   // Calculate totals based on new structure
-  const totalNGN = (Number.parseFloat(formData.priceNGN) || 0) + (Number.parseFloat(formData.otherExpensesNGN) || 0)
-  const totalUSD = (Number.parseFloat(formData.priceUSD) || 0) + (Number.parseFloat(formData.otherExpensesUSD) || 0)
+  const totalNGN = (Number.parseFloat(formData.priceNGN?.replace(/,/g, '') || 0)) + (Number.parseFloat(formData.otherExpensesNGN?.replace(/,/g, '') || 0));
+  const totalUSD = (Number.parseFloat(formData.priceUSD?.replace(/,/g, '') || 0)) + (Number.parseFloat(formData.otherExpensesUSD?.replace(/,/g, '') || 0));
 
   const validateForm = () => {
     const newErrors = {}
@@ -216,12 +217,45 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
     }
   }
 
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Format money fields with commas as user types
+    if (['priceNGN', 'exchangeRate', 'priceUSD', 'otherExpensesUSD', 'otherExpensesNGN', 'amountPaid'].includes(name)) {
+      const numericValue = value.replace(/[^0-9.]/g, ''); // Remove non-numeric characters except decimal point
+      const parts = numericValue.split('.');
+      
+      // Only allow numbers with up to 2 decimal places
+      if (parts.length > 1 && parts[1].length > 2) {
+        return; // Don't update if more than 2 decimal places
+      }
+      
+      // Update the form data with the raw numeric value
+      setFormData((prev) => ({ ...prev, [name]: numericValue }));
+      
+      // Clear any previous errors for this field
+      if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: '' }));
+      }
+      
+      return;
     }
-  }
+    
+    // For non-money fields, update normally
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear any previous errors for this field
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+  
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -333,15 +367,26 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
               <Label htmlFor="priceNGN" className="text-sm font-medium text-gray-700">
                 Price (NGN) *
               </Label>
-              <Input
-                id="priceNGN"
-                type="number"
-                step="0.01"
-                value={formData.priceNGN}
-                onChange={(e) => handleChange("priceNGN", e.target.value)}
-                placeholder="0.00"
-                className={`mt-1 ${errors.priceNGN ? "border-red-500" : ""}`}
-              />
+              <div className="relative">
+                <Input
+                  id="priceNGN"
+                  name="priceNGN"
+                  value={formatMoney(formData.priceNGN || 0, 2)}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseFloat(e.target.value.replace(/,/g, ''));
+                    if (!isNaN(num)) {
+                      setFormData(prev => ({
+                        ...prev,
+                        priceNGN: num
+                      }));
+                    }
+                  }}
+                  placeholder="0.00"
+                  className={`pr-8 ${errors.priceNGN ? "border-red-500" : ""}`}
+                />
+                <span className="absolute right-2 top-2 text-gray-500">₦</span>
+              </div>
               {errors.priceNGN && <p className="mt-1 text-sm text-red-600">{errors.priceNGN}</p>}
             </div>
 
@@ -349,15 +394,25 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
               <Label htmlFor="exchangeRate" className="text-sm font-medium text-gray-700">
                 Exchange Rate (USD to NGN) *
               </Label>
-              <Input
-                id="exchangeRate"
-                type="number"
-                step="0.01"
-                value={formData.exchangeRate}
-                onChange={(e) => handleChange("exchangeRate", e.target.value)}
-                placeholder="1500.00"
-                className={`mt-1 ${errors.exchangeRate ? "border-red-500" : ""}`}
-              />
+              <div className="relative">
+                <Input
+                  id="exchangeRate"
+                  name="exchangeRate"
+                  value={formatMoney(formData.exchangeRate || 0, 2)}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseFloat(e.target.value.replace(/,/g, ''));
+                    if (!isNaN(num)) {
+                      setFormData(prev => ({
+                        ...prev,
+                        exchangeRate: num
+                      }));
+                    }
+                  }}
+                  placeholder="1500"
+                  className={errors.exchangeRate ? "border-red-500" : ""}
+                />
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Default buy rate: ₦{exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toLocaleString() : "1,650"}. 
                 Changing this will update the default rate.
@@ -369,16 +424,17 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
               <Label htmlFor="priceUSD" className="text-sm font-medium text-gray-700">
                 Price (USD)
               </Label>
-              <Input
-                id="priceUSD"
-                type="number"
-                step="0.01"
-                value={formData.priceUSD}
-                readOnly
-                placeholder="0.00"
-                className="mt-1 bg-gray-100 cursor-not-allowed"
-                tabIndex={-1}
-              />
+              <div className="relative">
+                <Input
+                  id="priceUSD"
+                  name="priceUSD"
+                  value={formatMoney(formData.priceUSD || 0, 2)}
+                  readOnly
+                  placeholder="0.00"
+                  className="bg-gray-100 pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
+              </div>
               <p className="text-xs text-gray-500 mt-1">Auto-calculated from NGN price</p>
             </div>
 
@@ -386,15 +442,26 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
               <Label htmlFor="amountPaid" className="text-sm font-medium text-gray-700">
                 Amount Paid (USD)
               </Label>
-              <Input
-                id="amountPaid"
-                type="number"
-                step="0.01"
-                value={formData.amountPaid || totalUSD.toFixed(2)}
-                onChange={(e) => handleChange("amountPaid", e.target.value)}
-                placeholder="0.00"
-                className="mt-1"
-              />
+              <div className="relative">
+                <Input
+                  id="amountPaid"
+                  name="amountPaid"
+                  value={formatMoney(formData.amountPaid || 0, 2)}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseFloat(e.target.value.replace(/,/g, ''));
+                    if (!isNaN(num)) {
+                      setFormData(prev => ({
+                        ...prev,
+                        amountPaid: Math.min(num, totalUSD)
+                      }));
+                    }
+                  }}
+                  placeholder="0.00"
+                  className="pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
+              </div>
               <p className="text-xs text-gray-500 mt-1">Leave blank to mark as fully paid</p>
             </div>
 
@@ -402,78 +469,86 @@ export function VendorTransactionModal({ isOpen, onClose, onSave, transaction })
               <Label htmlFor="otherExpensesUSD" className="text-sm font-medium text-gray-700">
                 Other Expenses (USD)
               </Label>
-              <Input
-                id="otherExpensesUSD"
-                type="number"
-                step="0.01"
-                value={formData.otherExpensesUSD}
-                onChange={(e) => handleChange("otherExpensesUSD", e.target.value)}
-                placeholder="0.00"
-                className="mt-1"
-              />
+              <div className="relative">
+                <Input
+                  id="otherExpensesUSD"
+                  name="otherExpensesUSD"
+                  value={formatMoney(formData.otherExpensesUSD || 0, 2)}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseFloat(e.target.value.replace(/,/g, ''));
+                    if (!isNaN(num)) {
+                      setFormData(prev => ({
+                        ...prev,
+                        otherExpensesUSD: num
+                      }));
+                    }
+                  }}
+                  placeholder="0.00"
+                  className="pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
+              </div>
             </div>
 
             <div>
               <Label htmlFor="otherExpensesNGN" className="text-sm font-medium text-gray-700">
                 Other Expenses (NGN)
               </Label>
-              <Input
-                id="otherExpensesNGN"
-                type="number"
-                step="0.01"
-                value={formData.otherExpensesNGN}
-                onChange={(e) => handleChange("otherExpensesNGN", e.target.value)}
-                placeholder="0.00"
-                className="mt-1"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <Label htmlFor="paymentStatus" className="text-sm font-medium text-gray-700">
-                Payment Status
-              </Label>
-              <Select value={formData.paymentStatus} onValueChange={(value) => handleChange("paymentStatus", value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
-                  <SelectItem value="unpaid">Unpaid</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Calculated Values */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Calculated Values</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Price (USD):</span>
-                <p className="font-mono font-medium">${formData.priceUSD || "0.00"}</p>
-              </div>
-              <div>
-                <span className="text-gray-600">Total (NGN):</span>
-                <p className="font-mono font-medium">₦{totalNGN.toLocaleString()}</p>
-              </div>
-              <div>
-                <span className="text-gray-600">Total (USD):</span>
-                <p className="font-mono font-medium">${totalUSD.toFixed(2)}</p>
+              <div className="relative">
+                <Input
+                  id="otherExpensesNGN"
+                  name="otherExpensesNGN"
+                  value={formatMoney(formData.otherExpensesNGN || 0, 2)}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseFloat(e.target.value.replace(/,/g, ''));
+                    if (!isNaN(num)) {
+                      setFormData(prev => ({
+                        ...prev,
+                        otherExpensesNGN: num
+                      }));
+                    }
+                  }}
+                  placeholder="0.00"
+                  className="pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">₦</span>
               </div>
             </div>
-          </div>
 
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <Button type="button" variant="outline" onClick={onClose} disabled={submitLoading}>
-              Cancel
-            </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={submitLoading}>
-              {submitLoading ? "Saving..." : transaction ? "Update Transaction" : "Create Transaction"}
-            </Button>
+            {/* Calculated Values */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Calculated Values</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Price (USD):</span>
+                  <p className="font-mono font-medium">${formatMoney(formData.priceUSD || 0, 2)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Total (NGN):</span>
+                  <p className="font-mono font-medium">₦{formatMoney(totalNGN, 2)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Total (USD):</span>
+                  <p className="font-mono font-medium">${formatMoney(totalUSD, 2)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <Button type="button" variant="outline" onClick={onClose} disabled={submitLoading}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={submitLoading}>
+                {submitLoading ? "Saving..." : transaction ? "Update Transaction" : "Create Transaction"}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   )
 }
+
+export default VendorTransactionModal;

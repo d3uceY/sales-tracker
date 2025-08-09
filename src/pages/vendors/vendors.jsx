@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,10 +13,12 @@ import { formatNgnCurrency } from "../../helpers/currency/formatNaira"
 import { formatDate } from "../../helpers/date/formatDate"
 import { downloadInvoicePDF } from "../../helpers/invoice/invoice-generator"
 import { getAllVendorTransactions, updateTransaction, deleteTransaction } from "@/helpers/api/transaction"
+import { useBusiness } from "@/context/BusinessContext"
 import Spinner from "@/components/ui/spinner"
 import { toast } from "react-hot-toast"
 
 export default function VendorTransactions() {
+  const { businessInfo } = useBusiness()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -114,13 +116,12 @@ export default function VendorTransactions() {
   }
 
   const handleGenerateInvoice = (transaction) => {
-    const businessInfo = {
-      name: "Your Business Name",
-      address: "123 Business Street, Lagos, Nigeria",
-      phone: "+234 123 456 7890",
-      email: "info@yourbusiness.com",
+    if (!businessInfo) {
+      console.error("Business info not available")
+      toast.error("Business information is not available. Please try again later.")
+      return
     }
-
+    
     downloadInvoicePDF(transaction, businessInfo)
   }
 
@@ -176,19 +177,6 @@ export default function VendorTransactions() {
                 </span>
               </p>
               <p className="text-2xl font-bold text-purple-600">{formatNgnCurrency(totalSpentNGN)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div>
-              <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                Unpaid
-                <span className="inline-flex p-1 bg-red-50 rounded-lg">
-                  <Building2 className="h-5 w-5 text-red-600" />
-                </span>
-              </p>
-              <p className="text-2xl font-bold text-red-600">{unpaidTransactions}</p>
             </div>
           </CardContent>
         </Card>

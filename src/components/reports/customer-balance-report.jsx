@@ -195,10 +195,10 @@ export function CustomerBalanceReport({ onExportPDF, onExportExcel }) {
                   <Download className="h-4 w-4 mr-2" />
                   CSV
                 </Button>
-                <Button onClick={onExportPDF} variant="outline" size="sm">
+                {/* <Button onClick={onExportPDF} variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
                   PDF
-                </Button>
+                </Button> */}
               </div>
             </div>
           </div>

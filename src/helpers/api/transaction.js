@@ -10,10 +10,10 @@ export const postTransaction = async (transactionData) => {
   return response;
 };
 
-export const getTransactions = async () => {
-  const response = await authAxios.get("/transactions");
-  return response.data;
-};
+// export const getTransactions = async () => {
+//   const response = await authAxios.get("/transactions");
+//   return response.data;
+// };
 
 export const getTransaction = async (transactionId) => {
   const response = await authAxios.get(`/transactions/${transactionId}`);

@@ -3,6 +3,7 @@ import { dashboardApi } from "@/helpers/api/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { formatNgnCurrency } from "@/helpers/currency/formatNaira"
 
 const statusColors = {
   paid: "bg-green-100 text-green-800",

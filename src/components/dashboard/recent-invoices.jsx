@@ -3,6 +3,7 @@ import { dashboardApi } from "@/helpers/api/dashboard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { formatNgnCurrency } from "@/helpers/currency/formatNaira"
 
 const statusColors = {
   paid: "bg-green-100 text-green-800",
@@ -95,7 +96,7 @@ export function RecentInvoices() {
                   <td className="py-3 px-2 font-medium text-gray-900">{invoice.customer}</td>
                   <td className="py-3 px-2 text-gray-600">{invoice.issueDate}</td>
                   {/* <td className="py-3 px-2 text-gray-600">{invoice.dueDate}</td> */}
-                  <td className="py-3 px-2 text-right font-mono text-gray-900"> ₦{invoice.amount.toLocaleString()}</td>
+                  <td className="py-3 px-2 text-right font-mono text-gray-900">{formatNgnCurrency(invoice.amount)}</td>
                   <td className="py-3 px-2 text-center">
                     <Badge className={statusColors[invoice.status] || "bg-gray-100 text-gray-800"}>
                       {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}

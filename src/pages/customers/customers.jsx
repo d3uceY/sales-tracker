@@ -18,6 +18,7 @@ import React from "react"
 import Spinner from "@/components/ui/spinner"
 import { toast } from "react-hot-toast"
 import { updateTransaction, deleteTransaction } from "@/helpers/api/transaction"
+import { useBusiness } from "@/context/BusinessContext"
 
 export default function CustomerTransactions() {
   // All hooks must be called unconditionally and at the top
@@ -30,6 +31,7 @@ export default function CustomerTransactions() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [itemFilter, setItemFilter] = useState("all");
+  const { businessInfo } = useBusiness();
 
   // Stats (always call useMemo, never conditionally)
   const totalRevenueNGN = useMemo(() => transactions.reduce((sum, t) => sum + (t?.totalNGN || 0), 0), [transactions]);
@@ -130,11 +132,9 @@ export default function CustomerTransactions() {
     }
 
     const handleGenerateInvoice = (transaction) => {
-      const businessInfo = {
-        name: "Your Business Name",
-        address: "123 Business Street, Lagos, Nigeria",
-        phone: "+234 123 456 7890",
-        email: "info@yourbusiness.com",
+      if (!businessInfo) {
+        console.error("Business information not available");
+        return;
       }
       downloadInvoicePDF(transaction, businessInfo)
     }
@@ -191,19 +191,6 @@ export default function CustomerTransactions() {
                   </span>
                 </p>
                 <p className="text-2xl font-bold text-purple-600">{formatUsdCurrency(totalRevenueUSD)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div>
-                <p className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                  Unpaid
-                  <span className="inline-flex p-1 bg-red-50 rounded-lg">
-                    <Users className="h-5 w-5 text-red-600" />
-                  </span>
-                </p>
-                <p className="text-2xl font-bold text-red-600">{unpaidTransactions}</p>
               </div>
             </CardContent>
           </Card>
