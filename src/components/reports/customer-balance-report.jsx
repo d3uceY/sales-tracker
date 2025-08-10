@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Download, Search, Users, DollarSign, AlertCircle } from "lucide-react"
+import { Download, Search, Users, AlertCircle } from "lucide-react"
+import { FaNairaSign } from "react-icons/fa6"
 import { formatUsdCurrency } from "../../helpers/currency/formatDollars"
 import { formatDate } from "../../helpers/date/formatDate"
 import { reportsApi } from "../../helpers/api/reports"
@@ -62,9 +63,9 @@ export function CustomerBalanceReport({ onExportPDF, onExportExcel }) {
       "Customer Name",
       "Last Transaction",
       "Total Transactions",
-      "Total Purchased (USD)",
-      "Total Paid (USD)",
-      "Outstanding Balance (USD)",
+      "Total Purchased (₦)",
+      "Total Paid (₦)",
+      "Outstanding Balance (₦)",
       "Status",
     ]
     const csvContent = [
@@ -106,57 +107,61 @@ export function CustomerBalanceReport({ onExportPDF, onExportExcel }) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card className="overflow-hidden">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Customers</p>
-                <p className="text-2xl font-bold text-gray-900">{filteredCustomers.length}</p>
+            <div className="flex items-start justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-600 truncate">Total Customers</p>
+                <p className="text-xl font-bold text-gray-900 truncate">{filteredCustomers.length}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
+              <div className="p-2 bg-blue-50 rounded-lg ml-2 flex-shrink-0">
                 <Users className="h-5 w-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">With Outstanding</p>
-                <p className="text-2xl font-bold text-orange-600">{customersWithBalance}</p>
+            <div className="flex items-start justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-600 truncate">With Outstanding</p>
+                <p className="text-xl font-bold text-orange-600 truncate">{customersWithBalance}</p>
               </div>
-              <div className="p-3 bg-orange-50 rounded-lg">
+              <div className="p-2 bg-orange-50 rounded-lg ml-2 flex-shrink-0">
                 <AlertCircle className="h-5 w-5 text-orange-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Outstanding</p>
-                <p className="text-2xl font-bold text-red-600">{formatUsdCurrency(totalOutstanding)}</p>
+            <div className="flex items-start justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-600 truncate">Total Outstanding</p>
+                <p className="text-xl font-bold text-red-600 truncate">
+                  {formatUsdCurrency(totalOutstanding).replace('$', '₦')}
+                </p>
               </div>
-              <div className="p-3 bg-red-50 rounded-lg">
-                <DollarSign className="h-5 w-5 text-red-600" />
+              <div className="p-2 bg-red-50 rounded-lg ml-2 flex-shrink-0">
+                <FaNairaSign className="h-5 w-5 text-red-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Purchased</p>
-                <p className="text-2xl font-bold text-green-600">{formatUsdCurrency(totalPurchased)}</p>
+            <div className="flex items-start justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-600 truncate">Total Purchased</p>
+                <p className="text-xl font-bold text-green-600 truncate">
+                  {formatUsdCurrency(totalPurchased).replace('$', '₦')}
+                </p>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600" />
+              <div className="p-2 bg-green-50 rounded-lg ml-2 flex-shrink-0">
+                <FaNairaSign className="h-5 w-5 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -230,14 +235,14 @@ export function CustomerBalanceReport({ onExportPDF, onExportExcel }) {
                     <td className="py-4 px-4 text-gray-600">{formatDate(customer.lastTransactionDate)}</td>
                     <td className="py-4 px-4 text-center text-gray-900">{customer.totalTransactions}</td>
                     <td className="py-4 px-4 text-right font-mono text-gray-900">
-                      {formatUsdCurrency(customer.totalPurchased)}
+                      {formatUsdCurrency(customer.totalPurchased).replace('$', '₦')}
                     </td>
                     <td className="py-4 px-4 text-right font-mono text-gray-900">
-                      {formatUsdCurrency(customer.totalPaid)}
+                      {formatUsdCurrency(customer.totalPaid).replace('$', '₦')}
                     </td>
                     <td className="py-4 px-4 text-right font-mono">
                       <span className={customer.outstandingBalance > 0 ? "text-red-600 font-bold" : "text-green-600"}>
-                        {formatUsdCurrency(customer.outstandingBalance)}
+                        {formatUsdCurrency(customer.outstandingBalance).replace('$', '₦')}
                       </span>
                     </td>
                     <td className="py-4 px-4 text-center">
@@ -259,9 +264,9 @@ export function CustomerBalanceReport({ onExportPDF, onExportExcel }) {
                   <td className="py-4 px-4 text-center text-gray-900">
                     {filteredCustomers.reduce((sum, c) => sum + c.totalTransactions, 0)}
                   </td>
-                  <td className="py-4 px-4 text-right font-mono text-gray-900">{formatUsdCurrency(totalPurchased)}</td>
-                  <td className="py-4 px-4 text-right font-mono text-gray-900">{formatUsdCurrency(totalPaid)}</td>
-                  <td className="py-4 px-4 text-right font-mono text-red-600">{formatUsdCurrency(totalOutstanding)}</td>
+                  <td className="py-4 px-4 text-right font-mono text-gray-900">{formatUsdCurrency(totalPurchased).replace('$', '₦')}</td>
+                  <td className="py-4 px-4 text-right font-mono text-gray-900">{formatUsdCurrency(totalPaid).replace('$', '₦')}</td>
+                  <td className="py-4 px-4 text-right font-mono text-red-600">{formatUsdCurrency(totalOutstanding).replace('$', '₦')}</td>
                   <td className="py-4 px-4"></td>
                 </tr>
               </tbody>

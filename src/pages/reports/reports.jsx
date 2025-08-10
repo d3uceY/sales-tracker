@@ -135,9 +135,9 @@ export default function Reports() {
                   <p className="text-xl lg:text-2xl font-bold text-green-600">
                     {formatNgnCurrency(summaryCards?.totalRevenue?.value || 0)}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  {/* <p className="text-xs text-gray-500">
                     {formatUsdCurrency(summaryCards?.totalRevenue?.value || 0)}
-                  </p>
+                  </p> */}
                   {summaryCards?.totalRevenue?.change !== null && (
                     <p className={`text-xs ${summaryCards?.totalRevenue?.change >= 0 ? "text-green-500" : "text-red-500"}`}>
                       {formatChange(summaryCards?.totalRevenue?.change)} vs last month
@@ -160,9 +160,9 @@ export default function Reports() {
                   <p className="text-xl lg:text-2xl font-bold text-red-600">
                     {formatNgnCurrency(summaryCards?.totalExpenses?.value || 0)}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  {/* <p className="text-xs text-gray-500">
                     {formatUsdCurrency(summaryCards?.totalExpenses?.value || 0)}
-                  </p>
+                  </p> */}
                   {summaryCards?.totalExpenses?.change !== null && (
                     <p className={`text-xs ${summaryCards?.totalExpenses?.change >= 0 ? "text-red-500" : "text-green-500"}`}>
                       {formatChange(summaryCards?.totalExpenses?.change)} vs last month
@@ -185,9 +185,9 @@ export default function Reports() {
                   <p className="text-xl lg:text-2xl font-bold text-blue-600">
                     {formatNgnCurrency(summaryCards?.netProfit?.value || 0)}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  {/* <p className="text-xs text-gray-500">
                     {formatUsdCurrency(summaryCards?.netProfit?.value || 0)}
-                  </p>
+                  </p> */}
                   {summaryCards?.netProfit?.change !== null && (
                     <p className={`text-xs ${summaryCards?.netProfit?.change >= 0 ? "text-green-500" : "text-red-500"}`}>
                       {formatChange(summaryCards?.netProfit?.change)} vs last month
