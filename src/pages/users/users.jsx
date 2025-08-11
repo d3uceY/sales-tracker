@@ -265,7 +265,6 @@ export default function UserManagement() {
                       <th className="text-left py-3 px-4 font-medium text-gray-600">Email</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-600">Role</th>
                       <th className="text-center py-3 px-4 font-medium text-gray-600">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Last Login</th>
                       <th className="text-center py-3 px-4 font-medium text-gray-600">Actions</th>
                     </tr>
                   </thead>
@@ -298,7 +297,6 @@ export default function UserManagement() {
                             {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                           </Badge>
                         </td>
-                        <td className="py-4 px-4 text-gray-600">{user.lastLogin}</td>
                         <td className="py-4 px-4">
                           <div className="flex items-center justify-center space-x-2">
                             <Button
