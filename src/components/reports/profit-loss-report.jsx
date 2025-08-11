@@ -76,8 +76,8 @@ export function ProfitLossReport({ dateFilter, customDateFrom, customDateTo, onE
                 <YAxis tickFormatter={(value) => `₦${(value / 1000000).toFixed(0)}M`} />
                 <Tooltip
                   formatter={(value, name) => [
-                    formatNgnCurrency(value),
-                    name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Profit",
+                    (value),
+                    // name === "income" ? "Income" : name === "expenses" ? "Expenses" : "Profit",
                   ]}
                 />
                 <Legend />
@@ -105,7 +105,7 @@ export function ProfitLossReport({ dateFilter, customDateFrom, customDateTo, onE
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Income (USD)</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Expenses (NGN)</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Expenses (USD)</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Profit (NGN)</th>
+                  {/* <th className="text-right py-3 px-4 font-medium text-gray-600">Profit (NGN)</th> */}
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Profit (USD)</th>
                   <th className="text-center py-3 px-4 font-medium text-gray-600">Margin %</th>
                 </tr>
@@ -128,9 +128,9 @@ export function ProfitLossReport({ dateFilter, customDateFrom, customDateTo, onE
                       <td className="py-4 px-4 text-right font-mono text-red-600">
                         {formatUsdCurrency(month.expensesUSD)}
                       </td>
-                      <td className="py-4 px-4 text-right font-mono text-blue-600">
+                      {/* <td className="py-4 px-4 text-right font-mono text-blue-600">
                         {formatNgnCurrency(month.profit)}
-                      </td>
+                      </td> */}
                       <td className="py-4 px-4 text-right font-mono text-blue-600">
                         {formatUsdCurrency(month.profitUSD)}
                       </td>

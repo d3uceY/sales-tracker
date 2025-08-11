@@ -183,7 +183,7 @@ export default function Reports() {
                     </span>
                   </p>
                   <p className="text-xl lg:text-2xl font-bold text-blue-600">
-                    {formatNgnCurrency(summaryCards?.netProfit?.value || 0)}
+                    {formatUsdCurrency(summaryCards?.netProfit?.value || 0)}
                   </p>
                   {/* <p className="text-xs text-gray-500">
                     {formatUsdCurrency(summaryCards?.netProfit?.value || 0)}

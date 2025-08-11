@@ -38,10 +38,12 @@ export default function WalletTransactionForm({
   const [formData, setFormData] = useState({
     amount: '',
     reason: '',
+    customReason: '',
     description: '',
     date: new Date().toISOString().split('T')[0]
   });
   const [loading, setLoading] = useState(false);
+  const isOtherSelected = formData.reason === 'Other Income' || formData.reason === 'Other Expenses';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +53,7 @@ export default function WalletTransactionForm({
       await onSubmit({
         ...formData,
         amount: parseFloat(formData.amount),
+        reason: isOtherSelected && formData.customReason ? formData.customReason : formData.reason,
         performedBy: user?.name || user?.email
       });
       
@@ -58,6 +61,7 @@ export default function WalletTransactionForm({
       setFormData({
         amount: '',
         reason: '',
+        customReason: '',
         description: '',
         date: new Date().toISOString().split('T')[0]
       });
@@ -101,7 +105,13 @@ export default function WalletTransactionForm({
             <Label htmlFor="reason">Reason *</Label>
             <Select 
               value={formData.reason} 
-              onValueChange={(value) => handleChange('reason', value)}
+              onValueChange={(value) => {
+                handleChange('reason', value);
+                // Clear custom reason when switching away from "Other"
+                if (value !== 'Other Income' && value !== 'Other Expenses') {
+                  handleChange('customReason', '');
+                }
+              }}
               required
             >
               <SelectTrigger>
@@ -115,6 +125,20 @@ export default function WalletTransactionForm({
                 ))}
               </SelectContent>
             </Select>
+            {isOtherSelected && (
+              <div className="mt-2">
+                <Label htmlFor="customReason">Specify Reason *</Label>
+                <Input
+                  id="customReason"
+                  type="text"
+                  placeholder="Enter the reason for this transaction"
+                  value={formData.customReason}
+                  onChange={(e) => handleChange('customReason', e.target.value)}
+                  required
+                  className="mt-1"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -150,7 +174,7 @@ export default function WalletTransactionForm({
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !formData.amount || !formData.reason}
+              disabled={loading || !formData.amount || !formData.reason || (isOtherSelected && !formData.customReason)}
               className={type === 'inflow' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
               {loading ? 'Processing...' : (type === 'inflow' ? 'Add Cash' : 'Withdraw Cash')}

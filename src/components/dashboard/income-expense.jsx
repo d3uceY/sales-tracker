@@ -104,20 +104,20 @@ export function IncomeExpense() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
-              <span className="text-sm text-gray-600">Income</span>
+              <span className="text-sm text-gray-600">Money In</span>
             </div>
             <span className="text-base lg:text-lg font-bold text-green-600">{formatNgnCurrency(data.today.income)}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
-              <span className="text-sm text-gray-600">Expense</span>
+              <span className="text-sm text-gray-600">Expenses</span>
             </div>
             <span className="text-base lg:text-lg font-bold text-red-600">{formatNgnCurrency(data.today.expense)}</span>
           </div>
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">Net Income</span>
+              <span className="text-sm font-medium text-gray-900">Difference</span>
               <span className="text-base lg:text-lg font-bold text-blue-600">{formatNgnCurrency(data.today.netProfit)}</span>
             </div>
           </div>
@@ -133,7 +133,7 @@ export function IncomeExpense() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
-              <span className="text-sm text-gray-600">Income</span>
+              <span className="text-sm text-gray-600">Money In</span>
             </div>
             <span className="text-base lg:text-lg font-bold text-green-600">{formatNgnCurrency(data.thisMonth.income)}</span>
           </div>
@@ -146,7 +146,7 @@ export function IncomeExpense() {
           </div>
           <div className="pt-2 border-t">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-900">Net Income</span>
+              <span className="text-sm font-medium text-gray-900">Difference</span>
               <span className="text-base lg:text-lg font-bold text-blue-600">{formatNgnCurrency(data.thisMonth.netProfit)}</span>
             </div>
           </div>
@@ -175,7 +175,7 @@ export function IncomeExpense() {
                 <Tooltip
                   formatter={(value, name) => [
                     formatTooltipValue(value), 
-                    name === 'income' ? 'Income' : 'Expense'
+                    // name === 'income' ? 'Income' : 'Expense'
                   ]}
                   labelStyle={{ color: "#374151" }}
                   contentStyle={{
