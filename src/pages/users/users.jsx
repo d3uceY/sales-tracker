@@ -204,21 +204,6 @@ export default function UserManagement() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Admins</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {stats.admins}
-                  </p>
-                </div>
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <UserCheck className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Main Content */}
