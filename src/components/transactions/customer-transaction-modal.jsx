@@ -558,18 +558,18 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                     const num = parseMoney(e.target.value);
                     setFormData(prev => ({
                       ...prev,
-                      amountPaid: isNaN(num) ? '' : Math.min(num, totalUSD).toString()
+                      amountPaid: isNaN(num) ? '' : num.toString()
                     }));
                   }}
                   placeholder="0.00"
                   className="pr-8"
                 />
-                <span className="absolute right-2 top-2 text-gray-500">$</span>
+                <span className="absolute right-2 top-2 text-gray-500">₦</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Enter the amount paid by customer in Naira</p>
               {/* Total Paid Including Previous Balance */}
               <div className="mt-1 text-xs text-blue-700">
-                Total Paid (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">{formatMoney((Number(formData.amountPaid) || 0) + (Number(previousBalance) || 0), 2)}</span>
+                Total Paid (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">₦{formatMoney((Number(formData.amountPaid) || 0) + (Number(previousBalance) || 0), 2)}</span>
               </div>
             </div>
 
