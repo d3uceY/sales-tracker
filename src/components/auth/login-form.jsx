@@ -166,7 +166,7 @@ export function LoginForm() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <input
+                {/* <input
                   id="rememberMe"
                   name="rememberMe"
                   type="checkbox"
@@ -174,10 +174,10 @@ export function LoginForm() {
                   onChange={handleInputChange}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   disabled={isSubmitting}
-                />
-                <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                /> */}
+                {/* <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
                   Remember me
-                </Label>
+                </Label> */}
               </div>
 
               <Link
