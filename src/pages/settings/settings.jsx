@@ -6,18 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ItemCategoryModal } from "../../components/settings/item-category-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
-import { Building2, DollarSign, Tag, Bell, Download, Shield, Plus, Edit, Trash2, Save } from "lucide-react"
+import { Building2, DollarSign, Tag, Shield, Plus, Edit, Trash2, Save, Upload, X } from "lucide-react"
 import { getBusinessInfo, updateBusinessInfo } from "@/helpers/api/business"
 import { getExchangeRate, updateExchangeRate } from "@/helpers/api/exchange-rate"
-import { getItemCategories, createItemCategory, updateItemCategory, deleteItemCategory } from "@/helpers/api/item-categories"
+import {
+  getItemCategories,
+  createItemCategory,
+  updateItemCategory,
+  deleteItemCategory,
+} from "@/helpers/api/item-categories"
 import { useBusiness } from "../../context/BusinessContext"
-import PermissionRestricted from '@/components/permission-restricted'
-import { toggleRolePermission, getAllRolesWithPermissions } from '@/helpers/api/role-permissions'
+import PermissionRestricted from "@/components/permission-restricted"
+import { toggleRolePermission, getAllRolesWithPermissions } from "@/helpers/api/role-permissions"
 
 const initialCategories = [
   { id: 1, name: "Laptop", description: "Laptop computers and accessories", active: true },
@@ -55,7 +59,9 @@ export default function Settings() {
   const [businessInfo, setBusinessInfo] = useState({
     name: "",
     email: "",
+    logo: null,
   })
+  const [logoPreview, setLogoPreview] = useState(null)
   const [businessLoading, setBusinessLoading] = useState(true)
   const [businessError, setBusinessError] = useState("")
   const [businessSaving, setBusinessSaving] = useState(false)
@@ -82,39 +88,41 @@ export default function Settings() {
   const [permissions, setPermissions] = useState([])
   const [permissionsLoading, setPermissionsLoading] = useState(true)
   const [permissionLoading, setPermissionLoading] = useState(false)
-  const [permissionError, setPermissionError] = useState('')
-  const [permissionSuccess, setPermissionSuccess] = useState('')
+  const [permissionError, setPermissionError] = useState("")
+  const [permissionSuccess, setPermissionSuccess] = useState("")
 
   // Fetch roles with permissions
   const fetchRolesWithPermissions = async () => {
     setPermissionsLoading(true)
-    setPermissionError('')
+    setPermissionError("")
     try {
       const rolesData = await getAllRolesWithPermissions()
       // Transform backend data to match frontend structure
-      const transformedRoles = rolesData.map(role => {
+      const transformedRoles = rolesData.map((role) => {
         // Ensure Super Admin always shows full permissions
-        const isSuperAdmin = role.name === 'Super Admin'
+        const isSuperAdmin = role.name === "Super Admin"
         return {
           id: role.id,
           role: role.name,
-          permissions: isSuperAdmin ? {
-            read: true,
-            create: true,
-            update: true,
-            delete: true,
-          } : {
-            read: role.permissions?.canRead || false,
-            create: role.permissions?.canCreate || false,
-            update: role.permissions?.canUpdate || false,
-            delete: role.permissions?.canDelete || false,
-          }
+          permissions: isSuperAdmin
+            ? {
+                read: true,
+                create: true,
+                update: true,
+                delete: true,
+              }
+            : {
+                read: role.permissions?.canRead || false,
+                create: role.permissions?.canCreate || false,
+                update: role.permissions?.canUpdate || false,
+                delete: role.permissions?.canDelete || false,
+              },
         }
       })
       setPermissions(transformedRoles)
     } catch (error) {
-      setPermissionError('Failed to load roles and permissions')
-      console.error('Error fetching roles:', error)
+      setPermissionError("Failed to load roles and permissions")
+      console.error("Error fetching roles:", error)
       // Fallback to hardcoded roles if API fails
       setPermissions(userRoles)
     } finally {
@@ -130,7 +138,11 @@ export default function Settings() {
         setBusinessInfo({
           name: res.data?.name || "",
           email: res.data?.email || "",
+          logo: res.data?.logo || null,
         })
+        if (res.data?.logo) {
+          setLogoPreview(res.data.logo)
+        }
       })
       .catch((err) => {
         setBusinessError("Failed to load business info")
@@ -166,8 +178,14 @@ export default function Settings() {
     setBusinessError("")
     setBusinessSuccess("")
     try {
-      await updateBusinessInfo(businessInfo)
-      // Update the global business context
+      const formData = new FormData()
+      formData.append("name", businessInfo.name)
+      formData.append("email", businessInfo.email)
+      if (businessInfo.logo instanceof File) {
+        formData.append("logo", businessInfo.logo)
+      }
+
+      await updateBusinessInfo(formData)
       updateBusinessContext(businessInfo)
       setBusinessSuccess("Business information saved successfully!")
     } catch (err) {
@@ -187,7 +205,6 @@ export default function Settings() {
         sellRate: Number(exchangeRates.sellingRate),
       }
       await updateExchangeRate(newRates)
-      // Update the global exchange rates context
       updateExchangeContext(newRates)
       setExchangeSuccess("Exchange rate settings saved successfully!")
     } catch (err) {
@@ -216,17 +233,15 @@ export default function Settings() {
     setCategorySaving(true)
     try {
       if (selectedCategory) {
-        // Update existing category
         const updatedCategory = await updateItemCategory(selectedCategory.id, categoryData)
         setCategories(categories.map((cat) => (cat.id === selectedCategory.id ? updatedCategory.data : cat)))
       } else {
-        // Create new category
         const newCategory = await createItemCategory(categoryData)
         setCategories([...categories, newCategory.data])
       }
       setIsCategoryModalOpen(false)
     } catch (error) {
-      console.error('Error saving category:', error)
+      console.error("Error saving category:", error)
     } finally {
       setCategorySaving(false)
     }
@@ -240,35 +255,59 @@ export default function Settings() {
       setIsDeleteModalOpen(false)
       setSelectedCategory(null)
     } catch (error) {
-      console.error('Error deleting category:', error)
+      console.error("Error deleting category:", error)
     } finally {
       setCategoryDeleting(false)
     }
   }
 
+  const handleLogoUpload = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setBusinessError("Please select a valid image file")
+        return
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setBusinessError("Image size must be less than 5MB")
+        return
+      }
+
+      const previewUrl = URL.createObjectURL(file)
+      setLogoPreview(previewUrl)
+      setBusinessInfo({ ...businessInfo, logo: file })
+      setBusinessError("")
+    }
+  }
+
+  const handleRemoveLogo = () => {
+    setLogoPreview(null)
+    setBusinessInfo({ ...businessInfo, logo: null })
+    const fileInput = document.getElementById("logoUpload")
+    if (fileInput) {
+      fileInput.value = ""
+    }
+  }
 
   const togglePermission = async (roleId, permission) => {
     setPermissionLoading(true)
-    setPermissionError('')
-    setPermissionSuccess('')
-    
+    setPermissionError("")
+    setPermissionSuccess("")
+
     try {
-      // Find the current role to get the current permission value
-      const currentRole = permissions.find(role => role.id === roleId)
-      
-      // Prevent changes to Super Admin permissions
-      if (currentRole.role === 'Super Admin') {
-        setPermissionError('Super Admin permissions cannot be modified. Super Admin always has full access.')
+      const currentRole = permissions.find((role) => role.id === roleId)
+
+      if (currentRole.role === "Super Admin") {
+        setPermissionError("Super Admin permissions cannot be modified. Super Admin always has full access.")
         setPermissionLoading(false)
         return
       }
-      
+
       const newValue = !currentRole.permissions[permission]
-      
-      // Make API call to update permission (backend toggles automatically)
+
       await toggleRolePermission(roleId, permission)
-      
-      // Update local state only after successful API call
+
       setPermissions(
         permissions.map((role) =>
           role.id === roleId
@@ -282,15 +321,13 @@ export default function Settings() {
             : role,
         ),
       )
-      
-      setPermissionSuccess('Permission updated successfully')
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setPermissionSuccess(''), 3000)
-      
+
+      setPermissionSuccess("Permission updated successfully")
+
+      setTimeout(() => setPermissionSuccess(""), 3000)
     } catch (error) {
-      setPermissionError(error.message || 'Failed to update permission')
-      console.error('Permission toggle error:', error)
+      setPermissionError(error.message || "Failed to update permission")
+      console.error("Permission toggle error:", error)
     } finally {
       setPermissionLoading(false)
     }
@@ -298,7 +335,6 @@ export default function Settings() {
 
   return (
     <div className="space-y-4 lg:space-y-6 w-full">
-      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Settings</h1>
@@ -308,7 +344,6 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Settings Tabs */}
       <Tabs defaultValue="business" className="space-y-4 lg:space-y-6">
         <div className="overflow-x-auto">
           <TabsList className="grid w-full grid-cols-6 min-w-max">
@@ -327,7 +362,6 @@ export default function Settings() {
           </TabsList>
         </div>
 
-        {/* Business Info */}
         <TabsContent value="business">
           <Card>
             <CardHeader>
@@ -337,15 +371,57 @@ export default function Settings() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {businessLoading && (
-                <div className="text-blue-600 text-sm">Loading business info...</div>
-              )}
-              {businessError && (
-                <div className="text-red-600 text-sm">{businessError}</div>
-              )}
-              {businessSuccess && (
-                <div className="text-green-600 text-sm">{businessSuccess}</div>
-              )}
+              {businessLoading && <div className="text-blue-600 text-sm">Loading business info...</div>}
+              {businessError && <div className="text-red-600 text-sm">{businessError}</div>}
+              {businessSuccess && <div className="text-green-600 text-sm">{businessSuccess}</div>}
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Business Logo</Label>
+                  <div className="mt-2 flex items-center space-x-4">
+                    {logoPreview ? (
+                      <div className="relative">
+                        <img
+                          src={logoPreview || "/placeholder.svg"}
+                          alt="Business Logo"
+                          className="h-20 w-20 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                          disabled={businessLoading || businessSaving}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="h-20 w-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                        <Building2 className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <label
+                        htmlFor="logoUpload"
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {logoPreview ? "Change Logo" : "Upload Logo"}
+                      </label>
+                      <input
+                        id="logoUpload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                        disabled={businessLoading || businessSaving}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 5MB. Recommended size: 200x200px</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="businessName">Business Name</Label>
@@ -370,7 +446,11 @@ export default function Settings() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSaveBusinessInfo} className="bg-blue-600 hover:bg-blue-700" disabled={businessLoading || businessSaving}>
+                <Button
+                  onClick={handleSaveBusinessInfo}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={businessLoading || businessSaving}
+                >
                   <Save className="h-4 w-4 mr-2" />
                   {businessSaving ? "Saving..." : "Save Changes"}
                 </Button>
@@ -379,7 +459,6 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {/* Exchange Rate Settings */}
         <TabsContent value="exchange">
           <Card>
             <CardHeader>
@@ -389,15 +468,9 @@ export default function Settings() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              {exchangeLoading && (
-                <div className="text-blue-600 text-sm">Loading exchange rates...</div>
-              )}
-              {exchangeError && (
-                <div className="text-red-600 text-sm">{exchangeError}</div>
-              )}
-              {exchangeSuccess && (
-                <div className="text-green-600 text-sm">{exchangeSuccess}</div>
-              )}
+              {exchangeLoading && <div className="text-blue-600 text-sm">Loading exchange rates...</div>}
+              {exchangeError && <div className="text-red-600 text-sm">{exchangeError}</div>}
+              {exchangeSuccess && <div className="text-green-600 text-sm">{exchangeSuccess}</div>}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="buyingRate">Default Buying Rate (USD to NGN)</Label>
@@ -425,7 +498,11 @@ export default function Settings() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button onClick={handleSaveExchangeRates} className="bg-green-600 hover:bg-green-700" disabled={exchangeLoading || exchangeSaving}>
+                <Button
+                  onClick={handleSaveExchangeRates}
+                  className="bg-green-600 hover:bg-green-700"
+                  disabled={exchangeLoading || exchangeSaving}
+                >
                   <Save className="h-4 w-4 mr-2" />
                   {exchangeSaving ? "Saving..." : "Save Settings"}
                 </Button>
@@ -434,7 +511,6 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {/* Item Categories */}
         <TabsContent value="categories">
           <Card>
             <CardHeader>
@@ -450,12 +526,8 @@ export default function Settings() {
               </div>
             </CardHeader>
             <CardContent>
-              {categoriesLoading && (
-                <div className="text-purple-600 text-sm">Loading categories...</div>
-              )}
-              {categoriesError && (
-                <div className="text-red-600 text-sm">{categoriesError}</div>
-              )}
+              {categoriesLoading && <div className="text-purple-600 text-sm">Loading categories...</div>}
+              {categoriesError && <div className="text-red-600 text-sm">{categoriesError}</div>}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -509,7 +581,6 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {/* User Permissions */}
         <TabsContent value="permissions">
           <PermissionRestricted requiredRole="Admin">
             <Card>
@@ -520,7 +591,6 @@ export default function Settings() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Permission Messages */}
                 {permissionError && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                     <p className="text-sm text-red-600">{permissionError}</p>
@@ -549,50 +619,53 @@ export default function Settings() {
                     </thead>
                     <tbody>
                       {permissions.map((role) => {
-                        const isSuperAdmin = role.role === 'Super Admin'
+                        const isSuperAdmin = role.role === "Super Admin"
                         return (
-                        <tr key={role.id} className={`border-b border-gray-100 hover:bg-gray-50 ${isSuperAdmin ? 'bg-blue-50' : ''}`}>
-                          <td className="py-4 px-4 font-medium text-gray-900">
-                            {role.role}
-                            {isSuperAdmin && (
-                              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                Locked
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <Switch
-                              checked={role.permissions.read}
-                              onCheckedChange={() => togglePermission(role.id, "read")}
-                              disabled={permissionLoading || isSuperAdmin}
-                              size="sm"
-                            />
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <Switch
-                              checked={role.permissions.create}
-                              onCheckedChange={() => togglePermission(role.id, "create")}
-                              disabled={permissionLoading || isSuperAdmin}
-                              size="sm"
-                            />
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <Switch
-                              checked={role.permissions.update}
-                              onCheckedChange={() => togglePermission(role.id, "update")}
-                              disabled={permissionLoading || isSuperAdmin}
-                              size="sm"
-                            />
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <Switch
-                              checked={role.permissions.delete}
-                              onCheckedChange={() => togglePermission(role.id, "delete")}
-                              disabled={permissionLoading || isSuperAdmin}
-                              size="sm"
-                            />
-                          </td>
-                        </tr>
+                          <tr
+                            key={role.id}
+                            className={`border-b border-gray-100 hover:bg-gray-50 ${isSuperAdmin ? "bg-blue-50" : ""}`}
+                          >
+                            <td className="py-4 px-4 font-medium text-gray-900">
+                              {role.role}
+                              {isSuperAdmin && (
+                                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                  Locked
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <Switch
+                                checked={role.permissions.read}
+                                onCheckedChange={() => togglePermission(role.id, "read")}
+                                disabled={permissionLoading || isSuperAdmin}
+                                size="sm"
+                              />
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <Switch
+                                checked={role.permissions.create}
+                                onCheckedChange={() => togglePermission(role.id, "create")}
+                                disabled={permissionLoading || isSuperAdmin}
+                                size="sm"
+                              />
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <Switch
+                                checked={role.permissions.update}
+                                onCheckedChange={() => togglePermission(role.id, "update")}
+                                disabled={permissionLoading || isSuperAdmin}
+                                size="sm"
+                              />
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <Switch
+                                checked={role.permissions.delete}
+                                onCheckedChange={() => togglePermission(role.id, "delete")}
+                                disabled={permissionLoading || isSuperAdmin}
+                                size="sm"
+                              />
+                            </td>
+                          </tr>
                         )
                       })}
                     </tbody>
@@ -604,14 +677,13 @@ export default function Settings() {
         </TabsContent>
       </Tabs>
 
-      {/* Modals */}
-              <ItemCategoryModal
-          isOpen={isCategoryModalOpen}
-          onClose={() => setIsCategoryModalOpen(false)}
-          onSave={handleSaveCategory}
-          category={selectedCategory}
-          loading={categorySaving}
-        />
+      <ItemCategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSave={handleSaveCategory}
+        category={selectedCategory}
+        loading={categorySaving}
+      />
 
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
