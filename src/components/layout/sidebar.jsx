@@ -56,7 +56,7 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
     <>
       {/* Mobile sidebar */}
       <div
-        className={cn("fixed inset-0 bg-black/50 z-30 md:hidden", isMobileMenuOpen ? "block" : "hidden")}
+        className={cn("fixed inset-y-0 left-0 z-40 flex flex-col bg-gradient-to-b from-slate-100 to-slate-200 shadow-lg transition-transform duration-300 md:hidden", isMobileMenuOpen ? "block" : "hidden")}
         onClick={() => setIsMobileMenuOpen(false)}
       ></div>
       <div
@@ -88,7 +88,7 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
       {/* Desktop sidebar */}
       <div
         className={cn(
-          "hidden md:flex flex-col bg-white shadow-lg transition-all duration-300 h-screen",
+          "hidden md:flex flex-col bg-gradient-to-b from-slate-100 to-slate-200 shadow-lg transition-all duration-300",
           isSidebarCollapsed ? "w-20" : "w-64",
         )}
       >
@@ -150,7 +150,7 @@ function SidebarContent({ location, isSidebarCollapsed = false, handleLogout }) 
                     "flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200",
                     hasActiveChild
                       ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                      : "text-gray-600 hover:bg-white/80 hover:text-gray-900",
                     isSidebarCollapsed && "justify-center",
                   )}
                 >
@@ -184,7 +184,7 @@ function SidebarContent({ location, isSidebarCollapsed = false, handleLogout }) 
                               "flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
                               isActive
                                 ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                : "text-gray-600 hover:bg-white/80 hover:text-gray-900",
                             )}
                           >
                             <child.icon
