@@ -11,9 +11,6 @@ export function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, message,
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-semibold text-gray-900">{title}</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 

@@ -356,9 +356,6 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
             <DialogTitle className="text-xl font-semibold text-gray-900">
               {transaction ? "Edit Customer Sale" : "Create Customer Sale"}
             </DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 

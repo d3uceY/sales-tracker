@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { X } from "lucide-react"
 
 export function RoleModal({ isOpen, onClose, onSave, role }) {
@@ -66,9 +67,6 @@ export function RoleModal({ isOpen, onClose, onSave, role }) {
             <DialogTitle className="text-xl font-semibold text-gray-900">
               {role ? "Edit Role" : "Create New Role"}
             </DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 
@@ -93,15 +91,13 @@ export function RoleModal({ isOpen, onClose, onSave, role }) {
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
                 Description *
               </Label>
-              <textarea
+              <Textarea
                 id="description"
-                rows={3}
                 value={formData.description}
                 onChange={(e) => handleChange("description", e.target.value)}
                 placeholder="Enter role description"
-                className={`mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.description ? "border-red-500 focus:ring-red-500" : ""
-                }`}
+                className={`mt-1 ${errors.description ? "border-red-500 focus:ring-red-500" : ""}`}
+                rows={3}
               />
               {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
             </div>

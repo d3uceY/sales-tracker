@@ -92,9 +92,6 @@ export function UserModal({ isOpen, onClose, onSave, user, availableRoles }) {
             <DialogTitle className="text-xl font-semibold text-gray-900">
               {user ? "Edit User" : "Create New User"}
             </DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6">
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 
