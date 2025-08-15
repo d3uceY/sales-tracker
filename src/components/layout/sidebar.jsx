@@ -68,7 +68,15 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
       >
         <div className="flex items-center justify-between h-16 px-4 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0">
           <div className="flex items-center space-x-2">
-            <DollarSign className="h-8 w-8 text-white" />
+            {businessInfo.logo ? (
+  <img
+    src={businessInfo.logo}
+    alt="Business Logo"
+    className="h-8 w-8 rounded-full object-cover bg-white"
+  />
+) : (
+  <DollarSign className="h-8 w-8 text-white" />
+)}
             <span className="text-xl font-bold text-white">{businessInfo.name}</span>
           </div>
           <Button
@@ -100,7 +108,15 @@ export function Sidebar({ isSidebarCollapsed, toggleSidebar, isMobileMenuOpen, s
           )}
         >
           <div className={cn("flex items-center space-x-2", isSidebarCollapsed ? "justify-center" : "")}>
-            <DollarSign className="h-8 w-8 text-white flex-shrink-0" />
+            {businessInfo.logo ? (
+  <img
+    src={businessInfo.logo}
+    alt="Business Logo"
+    className="h-8 w-8 rounded-full object-cover bg-white flex-shrink-0"
+  />
+) : (
+  <DollarSign className="h-8 w-8 text-white flex-shrink-0" />
+)}
             {!isSidebarCollapsed && <span className="text-xl font-bold text-white">{businessInfo.name}</span>}
           </div>
           <button

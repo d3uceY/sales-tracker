@@ -26,6 +26,8 @@ export function BusinessProvider({ children }) {
         setBusinessInfo({
           name: businessRes.data.name || "SalesFlow",
           email: businessRes.data.email || "",
+          logo: businessRes.data.logo || null,
+          logoPublicId: businessRes.data.logoPublicId || null,
         })
       }
 

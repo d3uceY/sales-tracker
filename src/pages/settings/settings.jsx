@@ -12,6 +12,7 @@ import { ItemCategoryModal } from "../../components/settings/item-category-modal
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { Building2, DollarSign, Tag, Shield, Plus, Edit, Trash2, Save, Upload, X } from "lucide-react"
 import { getBusinessInfo, updateBusinessInfo } from "@/helpers/api/business"
+import { uploadBusinessLogo } from "@/helpers/api/business-logo"
 import { getExchangeRate, updateExchangeRate } from "@/helpers/api/exchange-rate"
 import {
   getItemCategories,
@@ -55,7 +56,7 @@ const userRoles = [
 ]
 
 export default function Settings() {
-  const { updateBusinessInfo: updateBusinessContext, updateExchangeRates: updateExchangeContext } = useBusiness()
+  const { updateBusinessInfo: updateBusinessContext, updateExchangeRates: updateExchangeContext, fetchBusinessData } = useBusiness()
   const [businessInfo, setBusinessInfo] = useState({
     name: "",
     email: "",
@@ -178,15 +179,19 @@ export default function Settings() {
     setBusinessError("")
     setBusinessSuccess("")
     try {
-      const formData = new FormData()
-      formData.append("name", businessInfo.name)
-      formData.append("email", businessInfo.email)
+      // If logo is a File, upload it separately
       if (businessInfo.logo instanceof File) {
-        formData.append("logo", businessInfo.logo)
+        await uploadBusinessLogo(businessInfo.logo)
+        await fetchBusinessData()
+        // Do NOT call updateBusinessContext here (let fetchBusinessData update the context with the new logo URL)
+        return // Prevent running the rest of the function after logo upload
       }
-
-      await updateBusinessInfo(formData)
-      updateBusinessContext(businessInfo)
+      // Always update business info (name/email) as JSON
+      await updateBusinessInfo({
+        name: businessInfo.name,
+        email: businessInfo.email,
+      })
+      updateBusinessContext({ ...businessInfo, logo: businessInfo.logo instanceof File ? logoPreview : businessInfo.logo })
       setBusinessSuccess("Business information saved successfully!")
     } catch (err) {
       setBusinessError("Failed to save business info")
@@ -261,23 +266,31 @@ export default function Settings() {
     }
   }
 
-  const handleLogoUpload = (event) => {
+  const handleLogoUpload = async (event) => {
     const file = event.target.files[0]
     if (file) {
       if (!file.type.startsWith("image/")) {
         setBusinessError("Please select a valid image file")
         return
       }
-
       if (file.size > 5 * 1024 * 1024) {
         setBusinessError("Image size must be less than 5MB")
         return
       }
-
-      const previewUrl = URL.createObjectURL(file)
-      setLogoPreview(previewUrl)
-      setBusinessInfo({ ...businessInfo, logo: file })
+      setBusinessSaving(true)
       setBusinessError("")
+      setBusinessSuccess("")
+      try {
+        const previewUrl = URL.createObjectURL(file)
+        setLogoPreview(previewUrl)
+        setBusinessInfo({ ...businessInfo, logo: file })
+        await uploadBusinessLogo(file)
+        setBusinessSuccess("Logo uploaded successfully!")
+      } catch (err) {
+        setBusinessError("Failed to upload logo")
+      } finally {
+        setBusinessSaving(false)
+      }
     }
   }
 
