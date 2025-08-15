@@ -12,6 +12,8 @@ import { getItemCategories, createItemCategory } from "@/helpers/api/item-catego
 import { useBusiness } from "../../context/BusinessContext"
 import { updateExchangeRate } from "../../helpers/api/exchange-rate"
 import { formatMoney, parseMoney } from "../../utils/formatters"
+import { getVendorBalanceByName } from "@/helpers/api/vendors"
+import { calculateNewBalance, formatBalanceStatus } from "../../helpers/balance/balance-calculator"
 
 const vendorNames = ["Best Buy", "Amazon", "Newegg", "B&H Photo", "Walmart", "Currency Exchange", "Other"]
 
@@ -39,6 +41,9 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [apiError, setApiError] = useState("")
+  const [previousBalance, setPreviousBalance] = useState(0)
+  const [balanceInfo, setBalanceInfo] = useState({ status: "paid", color: "green", text: "No Outstanding Balance" })
+  const [balanceLoading, setBalanceLoading] = useState(false)
 
   // Helper function to safely format money
   const safeFormatMoney = (value, decimals = 2) => {
@@ -136,9 +141,66 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
     }
   }, [formData.otherExpensesUSD, formData.exchangeRate])
 
+  // Fetch vendor balance when vendor is selected
+  useEffect(() => {
+    const fetchVendorBalance = async () => {
+      if (formData.vendorName && formData.vendorName !== "Other") {
+        setBalanceLoading(true);
+        try {
+          const response = await getVendorBalanceByName(formData.vendorName);
+          const balance = response.data?.outstandingBalance || 0;
+          const paymentStatus = response.data?.paymentStatus || "paid";
+          setPreviousBalance(balance);
+          
+          let statusText = "No Outstanding Balance";
+          let statusColor = "green";
+          
+          if (paymentStatus === "partial") {
+            statusText = "Partial Payment";
+            statusColor = "yellow";
+          } else if (paymentStatus === "unpaid") {
+            statusText = "Unpaid Balance";
+            statusColor = "red";
+          } else if (paymentStatus === "paid") {
+            statusText = "No Outstanding Balance";
+            statusColor = "green";
+          }
+          
+          setBalanceInfo({ 
+            status: paymentStatus, 
+            color: statusColor, 
+            text: statusText 
+          });
+        } catch (error) {
+          console.error("Error fetching vendor balance:", error);
+          // Fallback to 0 balance if API fails
+          setPreviousBalance(0);
+          setBalanceInfo({ status: "paid", color: "green", text: "No Outstanding Balance" });
+        } finally {
+          setBalanceLoading(false);
+        }
+      } else {
+        setPreviousBalance(0);
+        setBalanceInfo({ status: "paid", color: "green", text: "No Outstanding Balance" });
+      }
+    };
+
+    fetchVendorBalance();
+  }, [formData.vendorName]);
+
+
   // Calculate totals based on new structure
   const totalNGN = safeParseFloat(formData.priceNGN) + safeParseFloat(formData.otherExpensesNGN)
   const totalUSD = safeParseFloat(formData.priceUSD) + safeParseFloat(formData.otherExpensesUSD)
+  
+  // Update balance info when transaction amounts change
+  useEffect(() => {
+    if (formData.priceUSD) {
+      const currentTransactionTotal = totalUSD;
+      const newBalance = calculateNewBalance(previousBalance, currentTransactionTotal, currentTransactionTotal);
+      setBalanceInfo(formatBalanceStatus(newBalance));
+    }
+  }, [formData.priceUSD, previousBalance, totalUSD]);
 
   const validateForm = () => {
     const newErrors = {}
@@ -275,6 +337,25 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
             </DialogTitle>
           </div>
         </DialogHeader>
+        {formData.vendorName && formData.vendorName !== "Other" && (
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">Vendor Balance Information</h3>
+            {balanceLoading ? (
+              <div className="text-sm text-blue-700">Loading balance information...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-blue-700">Previous Balance:</span>
+                  <p className="font-mono font-medium text-blue-900">${formatMoney(previousBalance, 2)}</p>
+                </div>
+                <div>
+                  <span className="text-blue-700">Current Transaction:</span>
+                  <p className="font-mono font-medium text-blue-900">${formatMoney(totalUSD, 2)}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {apiError && <div className="text-red-600 text-sm mb-2">{apiError}</div>}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

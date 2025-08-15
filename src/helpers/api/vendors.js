@@ -10,4 +10,10 @@ export const getVendors = async (params) => {
 export const createVendor = async (vendorData) => {
   const response = await authAxios.post("/vendors", vendorData)
   return response.data
-} 
+}
+
+// Get vendor balance by name
+export const getVendorBalanceByName = async (vendorName) => {
+  const response = await authAxios.get(`/vendors/balance/${encodeURIComponent(vendorName)}`)
+  return response.data
+}
