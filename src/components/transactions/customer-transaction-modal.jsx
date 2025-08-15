@@ -97,6 +97,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
         otherExpensesNGN: "0",
         paymentStatus: "unpaid",
         amountPaid: "",
+        paid: "",
       })
     }
     setErrors({})
@@ -164,13 +165,27 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
 
   // Auto-calculate priceUSD when priceNGN and exchangeRate change
   useEffect(() => {
-    if (formData.priceNGN && formData.exchangeRate) {
+    if (formData.itemPurchased !== "Dollar" && formData.priceNGN && formData.exchangeRate) {
       const ngn = parseFloat(formData.priceNGN) || 0;
       const rate = parseFloat(formData.exchangeRate) || 1;
       const usd = ngn / rate;
       setFormData((prev) => ({ ...prev, priceUSD: usd ? usd.toFixed(2) : "" }));
     }
-  }, [formData.priceNGN, formData.exchangeRate]);
+  }, [formData.priceNGN, formData.exchangeRate, formData.itemPurchased]);
+
+  // Auto-calculate priceNGN when quantity changes for Dollar purchases
+  useEffect(() => {
+    if (formData.itemPurchased === "Dollar" && formData.quantity && formData.exchangeRate) {
+      const usdAmount = parseFloat(formData.quantity) || 0;
+      const rate = parseFloat(formData.exchangeRate) || 1;
+      const ngnAmount = usdAmount * rate;
+      setFormData(prev => ({
+        ...prev,
+        priceNGN: ngnAmount.toFixed(2),
+        priceUSD: usdAmount.toFixed(2)
+      }));
+    }
+  }, [formData.quantity, formData.exchangeRate, formData.itemPurchased]);
 
   // Auto-calculate otherExpensesNGN when otherExpensesUSD and exchangeRate change
   useEffect(() => {
@@ -272,7 +287,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
           }
         }
         
-        const amountPaidValue = Number.parseFloat(formData.amountPaid) || 0;
+        const amountPaidValue = Number.parseFloat(formData.paid) || 0;
         const newOutstandingBalance = calculateNewBalance(previousBalance, totalUSD, amountPaidValue);
         const transactionData = {
           itemPurchased: finalItemName,
@@ -283,12 +298,13 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
           priceUSD: Number.parseFloat(formData.priceUSD),
           otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
           otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
-          paymentStatus: amountPaidValue >= totalUSD ? "paid" : amountPaidValue > 0 ? "partial" : "unpaid",
+          paymentStatus: formData.paymentStatus,
           totalNGN: totalNGN,
           totalUSD: totalUSD,
           amountPaid: amountPaidValue + (Number(previousBalance) || 0),
           previousBalance: previousBalance,
           outstandingBalance: newOutstandingBalance,
+          paid: Number.parseFloat(formData.paid),
         };
         await onSave({ customerId, transactionData });
         setSubmitLoading(false);
@@ -452,7 +468,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
 
             <div>
               <Label htmlFor="quantity" className="text-sm font-medium text-gray-700">
-                Quantity *
+                {formData.itemPurchased === "Dollar" ? 'Amount (USD) *' : 'Quantity *'}
               </Label>
               <Input
                 id="quantity"
@@ -460,7 +476,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 step="0.01"
                 value={formData.quantity}
                 onChange={(e) => setFormData((prev) => ({ ...prev, quantity: e.target.value }))}
-                placeholder={formData.itemPurchased === "Dollar" ? "Amount in USD" : "Number of units"}
+                placeholder={formData.itemPurchased === "Dollar" ? "Enter USD amount" : "Number of units"}
                 className={`mt-1 ${errors.quantity ? "border-red-500" : ""}`}
               />
               {errors.quantity && <p className="mt-1 text-sm text-red-600">{errors.quantity}</p>}
@@ -537,25 +553,29 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
                 />
                 <span className="absolute right-2 top-2 text-gray-500">$</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Auto-calculated from NGN price</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.itemPurchased === "Dollar" 
+                  ? 'Auto-calculated from USD amount' 
+                  : 'Auto-calculated from NGN price'}
+              </p>
             </div>
 
             <div>
               <Label htmlFor="amountPaid" className="text-sm font-medium text-gray-700">
-                Amount Paid (NGN)
+                Paid (NGN)
               </Label>
               <div className="relative">
                 <Input
-                  id="amountPaid"
-                  name="amountPaid"
+                  id="paid"
+                  name="paid"
                   type="text"
-                  value={formData.amountPaid}
+                  value={formData.paid}
                   onChange={handleInputChange}
                   onBlur={(e) => {
                     const num = parseMoney(e.target.value);
                     setFormData(prev => ({
                       ...prev,
-                      amountPaid: isNaN(num) ? '' : num.toString()
+                      paid: isNaN(num) ? '' : num.toString()
                     }));
                   }}
                   placeholder="0.00"
@@ -566,7 +586,7 @@ export function CustomerTransactionModal({ isOpen, onClose, onSave, transaction 
               <p className="text-xs text-gray-500 mt-1">Enter the amount paid by customer in Naira</p>
               {/* Total Paid Including Previous Balance */}
               <div className="mt-1 text-xs text-blue-700">
-                Total Paid (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">₦{formatMoney((Number(formData.amountPaid) || 0) + (Number(previousBalance) || 0), 2)}</span>
+                Balance (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">₦{formatMoney((Number(formData.paid) || 0) + (Number(previousBalance) || 0), 2)}</span>
               </div>
             </div>
 

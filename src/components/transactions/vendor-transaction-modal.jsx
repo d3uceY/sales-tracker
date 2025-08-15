@@ -203,7 +203,7 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
         priceUSD: Number.parseFloat(formData.priceUSD),
         otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
         otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
-        paymentStatus: amountPaidValue < totalUSD ? "partial" : "paid",
+        paymentStatus: formData.paymentStatus,
         totalNGN: totalNGN,
         totalUSD: totalUSD,
         amountPaid: amountPaidValue,

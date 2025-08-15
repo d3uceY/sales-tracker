@@ -250,7 +250,7 @@ export default function CustomerTransactions() {
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Amount (USD)</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Other Exp (USD)</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Other Exp (NGN)</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-600">Amount Paid</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-600">Paid</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Outstanding Balance</th>
                     <th className="text-center py-3 px-4 font-medium text-gray-600">Status</th>
                     <th className="text-right py-3 px-4 font-medium text-gray-600">Total (NGN)</th>
@@ -316,7 +316,7 @@ export default function CustomerTransactions() {
                           {formatNgnCurrency(transaction.otherExpensesNGN)}
                         </td>
                         <td className="py-4 px-4 text-right font-mono text-blue-900">
-                          {formatNgnCurrency(transaction.amountPaid)}
+                          {formatNgnCurrency(transaction.paid)}
                         </td>
                         <td className="py-4 px-4 text-right font-mono text-red-900">
                           {formatNgnCurrency(transaction.outstandingBalance)}

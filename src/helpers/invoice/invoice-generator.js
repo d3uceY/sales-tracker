@@ -781,8 +781,8 @@ export const generateInvoiceHTML = (transactionData, businessInfo = {}) => {
                 <div class="expense-value amount-ngn">₦${safeLocale(otherExpensesNGN)}</div>
               </div>
               <div class="expense-item">
-                <div class="expense-label">Amount Paid</div>
-                <div class="expense-value">₦${safeLocale(transactionData.amountPaid || 0)}</div>
+                <div class="expense-label">Paid</div>
+                <div class="expense-value">₦${safeLocale(transactionData.paid || 0)}</div>
               </div>
             </div>
           </div>
@@ -810,13 +810,13 @@ export const generateInvoiceHTML = (transactionData, businessInfo = {}) => {
               <span>₦${safeLocale(outstandingBalance)}</span>
             </div>
             <div class="total-row final">
-              <span>Total Amount Due</span>
+              <span>Balance</span>
               <span>₦${safeLocale(totalNGN + safeNumber(outstandingBalance))}</span>
             </div>
             `
                 : `
             <div class="total-row final">
-              <span>Total Amount Due</span>
+              <span>Balance</span>
               <span>₦${safeLocale(totalNGN)}</span>
             </div>
             `
