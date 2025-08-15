@@ -140,7 +140,7 @@ export default function VendorTransactions() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
             <div>
@@ -236,6 +236,8 @@ export default function VendorTransactions() {
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Amount (NGN)</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Other Exp (USD)</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Other Exp (NGN)</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-600">Paid (USD)</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-600">Outstanding Balance (USD)</th>
                   <th className="text-center py-3 px-4 font-medium text-gray-600">Status</th>
                   <th className="text-right py-3 px-4 font-medium text-gray-600">Total (USD)</th>
                   <th className="text-center py-3 px-4 font-medium text-gray-600">Actions</th>
@@ -298,6 +300,12 @@ export default function VendorTransactions() {
                       </td>
                       <td className="py-4 px-4 text-right font-mono text-gray-600">
                         {formatNgnCurrency(transaction.otherExpensesNGN)}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono text-blue-900">
+                        {formatUsdCurrency(transaction.paid || 0)}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono text-red-900">
+                        {formatUsdCurrency(transaction.outstandingBalance || 0)}
                       </td>
                       <td className="py-4 px-4 text-center">
                         <Badge

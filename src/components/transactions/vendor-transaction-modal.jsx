@@ -32,7 +32,7 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
     otherExpensesUSD: "0",
     otherExpensesNGN: "0",
     paymentStatus: "unpaid",
-    amountPaid: "",
+    paid: "",
   })
   const [errors, setErrors] = useState({})
   const [vendors, setVendors] = useState([])
@@ -99,7 +99,7 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
         otherExpensesUSD: transaction.otherExpensesUSD ? transaction.otherExpensesUSD.toString() : "0",
         otherExpensesNGN: transaction.otherExpensesNGN ? transaction.otherExpensesNGN.toString() : "0",
         paymentStatus: transaction.paymentStatus,
-        amountPaid: transaction.amountPaid ? transaction.amountPaid.toString() : "",
+        paid: transaction.paid ? transaction.paid.toString() : "",
       })
     } else {
       setFormData({
@@ -115,7 +115,7 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
         otherExpensesUSD: "0",
         otherExpensesNGN: "0",
         paymentStatus: "unpaid",
-        amountPaid: "",
+        paid: "",
       })
     }
     setErrors({})
@@ -207,6 +207,8 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
 
     const finalVendorName = formData.vendorName === "Other" ? formData.customVendorName : formData.vendorName
     const finalItemName = formData.itemPurchased === "Other" ? formData.customItemName : formData.itemPurchased
+    const paidAmount = safeParseFloat(formData.paid) || 0
+    const totalAmount = safeParseFloat(formData.priceUSD) || 0
 
     if (!finalVendorName.trim()) newErrors.vendorName = "Vendor name is required"
     if (!finalItemName.trim()) newErrors.itemPurchased = "Item type is required"
@@ -217,6 +219,18 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
       newErrors.priceUSD = "Valid price in USD is required"
     if (!formData.exchangeRate || safeParseFloat(formData.exchangeRate) <= 0)
       newErrors.exchangeRate = "Valid exchange rate is required"
+    
+    // Validate payment status based on amount paid
+    if (paidAmount > 0 && paidAmount < totalAmount && formData.paymentStatus !== 'partial') {
+      // Auto-update payment status to partial if paid amount is less than total
+      setFormData(prev => ({ ...prev, paymentStatus: 'partial' }))
+    } else if (paidAmount >= totalAmount && formData.paymentStatus !== 'paid') {
+      // Auto-update payment status to paid if paid amount meets or exceeds total
+      setFormData(prev => ({ ...prev, paymentStatus: 'paid' }))
+    } else if (paidAmount === 0 && formData.paymentStatus !== 'unpaid') {
+      // Auto-update payment status to unpaid if no payment
+      setFormData(prev => ({ ...prev, paymentStatus: 'unpaid' }))
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -270,7 +284,10 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
           console.error('Error updating exchange rate:', error)
         }
       }
-      const amountPaidValue = safeParseFloat(formData.amountPaid) || totalUSD
+      
+      const amountPaidValue = safeParseFloat(formData.paid) || 0;
+      const newOutstandingBalance = calculateNewBalance(previousBalance, totalUSD, amountPaidValue);
+      
       const transactionData = {
         itemPurchased: finalItemName,
         transactionDate: formData.transactionDate,
@@ -283,7 +300,10 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
         paymentStatus: formData.paymentStatus,
         totalNGN: totalNGN,
         totalUSD: totalUSD,
-        amountPaid: amountPaidValue,
+        amountPaid: amountPaidValue + (Number(previousBalance) || 0),
+        previousBalance: previousBalance,
+        outstandingBalance: newOutstandingBalance,
+        paid: safeParseFloat(formData.paid),
       }
       onSave && onSave({ ...transactionData, vendorName, vendorId, isEdit: !!transaction, transactionId: transaction?.id })
       onClose && onClose()
@@ -298,7 +318,7 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
     const { name, value } = e.target
     
     // For money fields, allow raw input but validate format
-    if (['priceUSD', 'priceNGN', 'exchangeRate', 'otherExpensesUSD', 'otherExpensesNGN', 'amountPaid'].includes(name)) {
+    if (['priceUSD', 'priceNGN', 'exchangeRate', 'otherExpensesUSD', 'otherExpensesNGN', 'paid'].includes(name)) {
       // Allow empty string, numbers, and one decimal point
       if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
         setFormData((prev) => ({ ...prev, [name]: value }))
@@ -517,21 +537,32 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
             </div>
 
             <div>
-              <Label htmlFor="amountPaid" className="text-sm font-medium text-gray-700">
-                Amount Paid (USD)
+              <Label htmlFor="paid" className="text-sm font-medium text-gray-700">
+                Paid (USD)
               </Label>
               <div className="relative">
                 <Input
-                  id="amountPaid"
-                  name="amountPaid"
-                  value={formData.amountPaid || ""}
+                  id="paid"
+                  name="paid"
+                  value={formData.paid || ""}
                   onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseMoney(e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      paid: isNaN(num) ? '' : num.toString()
+                    }));
+                  }}
                   placeholder="0.00"
                   className="pr-8"
                 />
                 <span className="absolute right-2 top-2 text-gray-500">$</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Leave blank to mark as fully paid</p>
+              <p className="text-xs text-gray-500 mt-1">Enter the amount paid to vendor in USD</p>
+              {/* Total Paid Including Previous Balance */}
+              <div className="mt-1 text-xs text-blue-700">
+                Balance (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">${formatMoney((Number(formData.paid) || 0) + (Number(previousBalance) || 0), 2)}</span>
+              </div>
             </div>
 
             <div>
@@ -567,6 +598,27 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
                 <span className="absolute right-2 top-2 text-gray-500">₦</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Auto-calculated from USD expenses</p>
+            </div>
+
+            {/* Payment Status */}
+            <div className="col-span-1">
+              <Label htmlFor="paymentStatus" className="text-sm font-medium text-gray-700">
+                Payment Status
+              </Label>
+              <Select
+                value={formData.paymentStatus}
+                onValueChange={(value) => handleChange("paymentStatus", value)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select payment status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">Select the payment status for this transaction</p>
             </div>
 
             {/* Calculated Values */}
