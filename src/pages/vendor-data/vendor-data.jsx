@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useCallback, useState } from "react"
-import { toast } from "react-hot-toast"
+import { useNavigate } from "react-router-dom"
+import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,12 +10,14 @@ import { Badge } from "@/components/ui/badge"
 import { VendorModal } from "../../components/contact/vendor-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { TransactionHistoryTable } from "../../components/contact/transaction-history-table"
-import { Plus, Search, Edit, Trash2, Building2, UserCheck, UserX, ChevronDown, ChevronRight } from "lucide-react"
+import { Search, Edit, Trash2, Building2, UserCheck, UserX, ChevronDown, ChevronRight, Eye } from "lucide-react"
 import Spinner from "@/components/ui/spinner"
 import PermissionRestricted from "@/components/permission-restricted"
-import { getVendors, getVendorTransactions } from "@/helpers/api/vendors"
+import { getVendors, getVendorTransactions, createVendor, updateVendor, deleteVendor } from "@/helpers/api/vendors"
 
 export default function VendorData() {
+  const { toast } = useToast()
+  const navigate = useNavigate()
   const [vendors, setVendors] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -38,17 +41,17 @@ export default function VendorData() {
         page: currentPage,
         limit: itemsPerPage,
         search: searchTerm,
-        status: statusFilter === 'all' ? undefined : statusFilter
+        status: statusFilter === "all" ? undefined : statusFilter,
       })
 
       setVendors(response.data)
       setTotalPages(response.pagination?.pages || 1)
-      
+
       // Update stats
       const totalVendors = response.pagination?.total || 0
-      const activeVendors = response.data?.filter(v => v.status === 'active').length || 0
+      const activeVendors = response.data?.filter((v) => v.status === "active").length || 0
       const inactiveVendors = totalVendors - activeVendors
-      
+
       setStats({
         totalVendors,
         activeVendors,
@@ -57,6 +60,11 @@ export default function VendorData() {
     } catch (err) {
       setError("Failed to load vendors.")
       console.error("Error fetching vendors:", err)
+      toast({
+        title: "Error",
+        description: "Failed to load vendors",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -67,50 +75,49 @@ export default function VendorData() {
     try {
       const response = await getVendorTransactions(vendorId, {
         page: 1,
-        limit: 10
+        limit: 10,
       })
-      
+
       // Update the vendor with transactions from the response
-      setVendors(prevVendors => 
-        prevVendors.map(vendor => 
-          vendor.id === vendorId 
-            ? { 
-                ...vendor, 
-                transactions: response.data?.transactions || [] 
-              } 
-            : vendor
-        )
+      setVendors((prevVendors) =>
+        prevVendors.map((vendor) =>
+          vendor.id === vendorId
+            ? {
+                ...vendor,
+                transactions: response.data?.transactions || [],
+              }
+            : vendor,
+        ),
       )
     } catch (err) {
       console.error("Error fetching transactions:", err)
       // Set empty transactions array if there's an error
-      setVendors(prevVendors => 
-        prevVendors.map(vendor => 
-          vendor.id === vendorId 
-            ? { ...vendor, transactions: [] } 
-            : vendor
-        )
+      setVendors((prevVendors) =>
+        prevVendors.map((vendor) => (vendor.id === vendorId ? { ...vendor, transactions: [] } : vendor)),
       )
     }
   }, [])
 
   // Toggle row expansion and fetch transactions if needed
-  const toggleRowExpansion = useCallback(async (vendorId) => {
-    const isExpanded = !expandedRows[vendorId]
-    
-    // If expanding and transactions aren't loaded yet, fetch them
-    if (isExpanded) {
-      const vendor = vendors.find(v => v.id === vendorId)
-      if (vendor && (!vendor.transactions || vendor.transactions.length === 0)) {
-        await fetchVendorTransactions(vendorId)
+  const toggleRowExpansion = useCallback(
+    async (vendorId) => {
+      const isExpanded = !expandedRows[vendorId]
+
+      // If expanding and transactions aren't loaded yet, fetch them
+      if (isExpanded) {
+        const vendor = vendors.find((v) => v.id === vendorId)
+        if (vendor && (!vendor.transactions || vendor.transactions.length === 0)) {
+          await fetchVendorTransactions(vendorId)
+        }
       }
-    }
-    
-    setExpandedRows(prev => ({
-      ...prev,
-      [vendorId]: isExpanded,
-    }))
-  }, [vendors, expandedRows, fetchVendorTransactions])
+
+      setExpandedRows((prev) => ({
+        ...prev,
+        [vendorId]: isExpanded,
+      }))
+    },
+    [vendors, expandedRows, fetchVendorTransactions],
+  )
 
   useEffect(() => {
     fetchVendors()
@@ -126,6 +133,10 @@ export default function VendorData() {
     setIsVendorModalOpen(true)
   }
 
+  const handleViewVendor = (vendor) => {
+    navigate(`/vendor-details?id=${vendor.id}`)
+  }
+
   const handleDeleteVendor = (vendor) => {
     setSelectedVendor(vendor)
     setIsDeleteModalOpen(true)
@@ -135,19 +146,28 @@ export default function VendorData() {
     setLoading(true)
     setError("")
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
       if (selectedVendor) {
-        toast.success("Vendor updated successfully")
+        await updateVendor(selectedVendor.id, vendorData)
+        toast({
+          title: "Success",
+          description: "Vendor updated successfully",
+        })
       } else {
-        toast.success("Vendor created successfully")
+        await createVendor(vendorData)
+        toast({
+          title: "Success",
+          description: "Vendor created successfully",
+        })
       }
       setIsVendorModalOpen(false)
       fetchVendors()
     } catch (err) {
       setError("Failed to save vendor.")
-      toast.error("Failed to save vendor")
+      toast({
+        title: "Error",
+        description: "Failed to save vendor",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -157,16 +177,21 @@ export default function VendorData() {
     setLoading(true)
     setError("")
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      toast.success("Vendor deleted successfully")
+      await deleteVendor(selectedVendor.id)
+      toast({
+        title: "Success",
+        description: "Vendor deleted successfully",
+      })
       setIsDeleteModalOpen(false)
       setSelectedVendor(null)
       fetchVendors()
     } catch (err) {
       setError("Failed to delete vendor.")
-      toast.error("Failed to delete vendor")
+      toast({
+        title: "Error",
+        description: "Failed to delete vendor",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -181,10 +206,12 @@ export default function VendorData() {
             <h1 className="text-3xl font-bold text-gray-900">Vendor Management</h1>
             <p className="text-gray-600 mt-2">Manage vendor data and transaction history</p>
           </div>
-          <Button onClick={handleAddVendor} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Vendor
-          </Button>
+          <VendorModal
+            onSave={handleSaveVendor}
+            onCancel={() => setIsVendorModalOpen(false)}
+            isOpen={isVendorModalOpen}
+            onOpenChange={setIsVendorModalOpen}
+          />
         </div>
 
         {/* Stats Cards */}
@@ -303,27 +330,37 @@ export default function VendorData() {
                                 <span className="text-white text-xs font-medium">
                                   {vendor.name
                                     .split(" ")
-                                    .map(n => n[0])
+                                    .map((n) => n[0])
                                     .join("")}
                                 </span>
                               </div>
                               <div className="font-medium text-gray-900">{vendor.name}</div>
                             </div>
                           </td>
-                          <td className="py-4 px-4 text-gray-600">{vendor.contactPerson || '-'}</td>
-                          <td className="py-4 px-4 text-gray-600">{vendor.email || '-'}</td>
-                          <td className="py-4 px-4 text-gray-600">{vendor.phone || '-'}</td>
+                          <td className="py-4 px-4 text-gray-600">{vendor.contactPerson || "-"}</td>
+                          <td className="py-4 px-4 text-gray-600">{vendor.email || "-"}</td>
+                          <td className="py-4 px-4 text-gray-600">{vendor.phone || "-"}</td>
                           <td className="py-4 px-4 text-center">
                             <Badge
                               className={
                                 vendor.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                               }
                             >
-                              {vendor.status ? vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1) : 'Inactive'}
+                              {vendor.status
+                                ? vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)
+                                : "Inactive"}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center justify-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewVendor(vendor)} // Added eye icon button for viewing vendor details
+                                className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -332,22 +369,22 @@ export default function VendorData() {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button
+                              {/* <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => handleDeleteVendor(vendor)}
                                 className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
                               >
                                 <Trash2 className="h-4 w-4" />
-                              </Button>
+                              </Button> */}
                             </div>
                           </td>
                         </tr>
                         {expandedRows[vendor.id] && (
                           <tr>
                             <td colSpan="7" className="py-4 px-4 bg-gray-50">
-                              <TransactionHistoryTable 
-                                transactions={Array.isArray(vendor.transactions) ? vendor.transactions : []} 
+                              <TransactionHistoryTable
+                                transactions={Array.isArray(vendor.transactions) ? vendor.transactions : []}
                                 type="vendor"
                                 loading={loading && vendor.transactions === undefined}
                               />

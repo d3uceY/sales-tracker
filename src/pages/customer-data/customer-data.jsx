@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useCallback, useState } from "react"
-import { toast } from "react-hot-toast"
+import { useNavigate } from "react-router-dom"
+import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,12 +10,20 @@ import { Badge } from "@/components/ui/badge"
 import { CustomerModal } from "../../components/contact/customer-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { TransactionHistoryTable } from "../../components/contact/transaction-history-table"
-import { Plus, Search, Edit, Trash2, Users2, UserCheck, UserX, ChevronDown, ChevronRight } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Users2, UserCheck, UserX, ChevronDown, ChevronRight, Eye } from "lucide-react"
 import Spinner from "@/components/ui/spinner"
 import PermissionRestricted from "@/components/permission-restricted"
-import { getCustomers, getCustomerTransactions } from "@/helpers/api/customers"
+import {
+  getCustomers,
+  getCustomerTransactions,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+} from "@/helpers/api/customers"
 
 export default function CustomerData() {
+  const { toast } = useToast()
+  const navigate = useNavigate()
   const [customers, setCustomers] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -29,7 +38,6 @@ export default function CustomerData() {
   const [error, setError] = useState("")
   const [stats, setStats] = useState({ totalCustomers: 0, activeCustomers: 0, inactiveCustomers: 0 })
 
-  // Fetch customers from API
   const fetchCustomers = useCallback(async () => {
     setLoading(true)
     setError("")
@@ -38,79 +46,135 @@ export default function CustomerData() {
         page: currentPage,
         limit: itemsPerPage,
         search: searchTerm,
-        status: statusFilter === 'all' ? undefined : statusFilter
+        status: statusFilter === "all" ? undefined : statusFilter,
       })
 
       setCustomers(response.data)
       setTotalPages(response.pagination?.pages || 1)
-      
-      // Update stats
+
       const totalCustomers = response.pagination?.total || 0
-      const activeCustomers = response.data?.filter(c => c.status === 'active').length || 0
+      const activeCustomers = response.data?.filter((c) => c.status === "active").length || 0
       const inactiveCustomers = totalCustomers - activeCustomers
-      
+
       setStats({
         totalCustomers,
         activeCustomers,
         inactiveCustomers,
       })
     } catch (err) {
-      setError("Failed to load customers.")
+      toast({
+        title: "Error",
+        description: "Failed to load customers",
+        variant: "destructive",
+      })
       console.error("Error fetching customers:", err)
     } finally {
       setLoading(false)
     }
   }, [searchTerm, statusFilter, currentPage, itemsPerPage])
 
-  // Fetch transactions for a customer
   const fetchCustomerTransactions = useCallback(async (customerId) => {
     try {
       const response = await getCustomerTransactions(customerId, {
         page: 1,
-        limit: 10
+        limit: 10,
       })
-      
-      // Update the customer with transactions from the response
-      setCustomers(prevCustomers => 
-        prevCustomers.map(customer => 
-          customer.id === customerId 
-            ? { 
-                ...customer, 
-                transactions: response.data?.transactions || [] 
-              } 
-            : customer
-        )
+
+      setCustomers((prevCustomers) =>
+        prevCustomers.map((customer) =>
+          customer.id === customerId
+            ? {
+                ...customer,
+                transactions: response.data?.transactions || [],
+              }
+            : customer,
+        ),
       )
     } catch (err) {
       console.error("Error fetching transactions:", err)
-      // Set empty transactions array if there's an error
-      setCustomers(prevCustomers => 
-        prevCustomers.map(customer => 
-          customer.id === customerId 
-            ? { ...customer, transactions: [] } 
-            : customer
-        )
+      setCustomers((prevCustomers) =>
+        prevCustomers.map((customer) => (customer.id === customerId ? { ...customer, transactions: [] } : customer)),
       )
     }
   }, [])
 
-  // Toggle row expansion and fetch transactions if needed
-  const toggleRowExpansion = useCallback(async (customerId) => {
-    const isExpanded = !expandedRows[customerId]
-    
-    // If expanding and transactions aren't loaded yet, fetch them
-    if (isExpanded) {
-      const customer = customers.find(c => c.id === customerId)
-      if (customer && (!customer.transactions || customer.transactions.length === 0)) {
-        await fetchCustomerTransactions(customerId)
+  const toggleRowExpansion = useCallback(
+    async (customerId) => {
+      const isExpanded = !expandedRows[customerId]
+
+      if (isExpanded) {
+        const customer = customers.find((c) => c.id === customerId)
+        if (customer && (!customer.transactions || customer.transactions.length === 0)) {
+          await fetchCustomerTransactions(customerId)
+        }
       }
+
+      setExpandedRows((prev) => ({
+        ...prev,
+        [customerId]: isExpanded,
+      }))
+    },
+    [customers, expandedRows, fetchCustomerTransactions],
+  )
+
+  const handleCreateCustomer = async (customerData) => {
+    try {
+      const response = await createCustomer(customerData)
+      toast({
+        title: "Success",
+        description: "Customer created successfully",
+      })
+      setIsCustomerModalOpen(false)
+      fetchCustomers()
+    } catch (err) {
+      console.error("Error creating customer:", err)
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to create customer. Please try again.",
+        variant: "destructive",
+      })
     }
-    
-    setExpandedRows(prev => ({
-      ...prev,
-      [customerId]: isExpanded,
-    }))
-  }, [customers, expandedRows, fetchCustomerTransactions])
+  }
+
+  const handleUpdateCustomer = async (customerData) => {
+    if (!selectedCustomer) return
+    try {
+      await updateCustomer(selectedCustomer.id, customerData)
+      toast({
+        title: "Success",
+        description: "Customer updated successfully",
+      })
+      setSelectedCustomer(null)
+      fetchCustomers()
+    } catch (err) {
+      console.error("Error updating customer:", err)
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to update customer. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteCustomer = async (customerId) => {
+    if (!window.confirm("Are you sure you want to delete this customer?")) return
+
+    try {
+      await deleteCustomer(customerId)
+      toast({
+        title: "Success",
+        description: "Customer deleted successfully",
+      })
+      fetchCustomers()
+    } catch (err) {
+      console.error("Error deleting customer:", err)
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to delete customer. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   useEffect(() => {
     fetchCustomers()
@@ -126,68 +190,43 @@ export default function CustomerData() {
     setIsCustomerModalOpen(true)
   }
 
-  const handleDeleteCustomer = (customer) => {
-    setSelectedCustomer(customer)
-    setIsDeleteModalOpen(true)
+  const handleViewCustomer = (customer) => {
+    navigate(`/customer-details?id=${customer.id}`)
   }
 
   const handleSaveCustomer = async (customerData) => {
-    setLoading(true)
-    setError("")
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      if (selectedCustomer) {
-        toast.success("Customer updated successfully")
-      } else {
-        toast.success("Customer created successfully")
-      }
-      setIsCustomerModalOpen(false)
-      fetchCustomers()
-    } catch (err) {
-      setError("Failed to save customer.")
-      toast.error("Failed to save customer")
-    } finally {
-      setLoading(false)
+    if (selectedCustomer) {
+      await handleUpdateCustomer(customerData)
+    } else {
+      await handleCreateCustomer(customerData)
     }
   }
 
   const handleConfirmDelete = async () => {
-    setLoading(true)
-    setError("")
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      toast.success("Customer deleted successfully")
-      setIsDeleteModalOpen(false)
-      setSelectedCustomer(null)
-      fetchCustomers()
-    } catch (err) {
-      setError("Failed to delete customer.")
-      toast.error("Failed to delete customer")
-    } finally {
-      setLoading(false)
-    }
+    await handleDeleteCustomer(selectedCustomer.id)
+    setIsDeleteModalOpen(false)
+    setSelectedCustomer(null)
   }
 
   return (
     <PermissionRestricted requiredPermission="read">
       <div className="space-y-6">
-        {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Customer Management</h1>
             <p className="text-gray-600 mt-2">Manage customer data and transaction history</p>
           </div>
-          <Button onClick={handleAddCustomer} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Customer
+          <Button variant="default" onClick={handleAddCustomer} className="h-8 w-8">
+            <Plus className="h-4 w-4" />
           </Button>
+          <CustomerModal
+            onSave={handleCreateCustomer}
+            onCancel={() => setIsCustomerModalOpen(false)}
+            isOpen={isCustomerModalOpen}
+            onOpenChange={setIsCustomerModalOpen}
+          />
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardContent className="p-6">
@@ -230,7 +269,6 @@ export default function CustomerData() {
           </Card>
         </div>
 
-        {/* Main Content */}
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -302,26 +340,36 @@ export default function CustomerData() {
                                 <span className="text-white text-xs font-medium">
                                   {customer.name
                                     .split(" ")
-                                    .map(n => n[0])
+                                    .map((n) => n[0])
                                     .join("")}
                                 </span>
                               </div>
                               <div className="font-medium text-gray-900">{customer.name}</div>
                             </div>
                           </td>
-                          <td className="py-4 px-4 text-gray-600">{customer.email || '-'}</td>
-                          <td className="py-4 px-4 text-gray-600">{customer.phone || '-'}</td>
+                          <td className="py-4 px-4 text-gray-600">{customer.email || "-"}</td>
+                          <td className="py-4 px-4 text-gray-600">{customer.phone || "-"}</td>
                           <td className="py-4 px-4 text-center">
                             <Badge
                               className={
                                 customer.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                               }
                             >
-                              {customer.status ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1) : 'Inactive'}
+                              {customer.status
+                                ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1)
+                                : "Inactive"}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center justify-center space-x-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewCustomer(customer)}
+                                className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -330,23 +378,23 @@ export default function CustomerData() {
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button
+                              {/* <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDeleteCustomer(customer)}
+                                onClick={() => setIsDeleteModalOpen(true)}
                                 className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
                               >
                                 <Trash2 className="h-4 w-4" />
-                              </Button>
+                              </Button> */}
                             </div>
                           </td>
                         </tr>
                         {expandedRows[customer.id] && (
                           <tr>
                             <td colSpan="6" className="py-4 px-4 bg-gray-50">
-                              <TransactionHistoryTable 
-                                transactions={Array.isArray(customer.transactions) ? customer.transactions : []} 
-                                type="customer" 
+                              <TransactionHistoryTable
+                                transactions={Array.isArray(customer.transactions) ? customer.transactions : []}
+                                type="customer"
                                 loading={loading && customer.transactions === undefined}
                               />
                             </td>
@@ -359,7 +407,6 @@ export default function CustomerData() {
               </div>
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-6">
                 <div className="text-sm text-gray-600">
@@ -389,7 +436,6 @@ export default function CustomerData() {
           </CardContent>
         </Card>
 
-        {/* Modals */}
         <CustomerModal
           isOpen={isCustomerModalOpen}
           onClose={() => setIsCustomerModalOpen(false)}

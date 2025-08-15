@@ -22,7 +22,10 @@ import { PermissionsProvider } from "./context/permissions-context"
 import CashWallet from "./pages/cash-wallet/cash-wallet"
 import { WalletProvider } from "./context/wallet-context"
 import CustomerData from "./pages/customer-data/customer-data"
+import CustomerDetails from "./pages/customer-details/customer-details"
 import VendorData from "./pages/vendor-data/vendor-data"
+import VendorDetails from "./pages/vendor-details/vendor-details"
+import { Toaster } from "./components/ui/toaster"
 
 function App() {
   return (
@@ -45,6 +48,7 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <DashboardLayout>
+                            <Toaster />
                             <Routes>
                               <Route
                                 path="/"
@@ -95,10 +99,26 @@ function App() {
                                 }
                               />
                               <Route
+                                path="/customer-details"
+                                element={
+                                  <TransactionProvider>
+                                    <CustomerDetails />
+                                  </TransactionProvider>
+                                }
+                              />
+                              <Route
                                 path="/vendor-data"
                                 element={
                                   <TransactionProvider>
                                     <VendorData />
+                                  </TransactionProvider>
+                                }
+                              />
+                              <Route
+                                path="/vendor-details"
+                                element={
+                                  <TransactionProvider>
+                                    <VendorDetails />
                                   </TransactionProvider>
                                 }
                               />

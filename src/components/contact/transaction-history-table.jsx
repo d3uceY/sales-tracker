@@ -61,7 +61,7 @@ export function TransactionHistoryTable({ transactions, type = "customer" }) {
               <th className="text-right py-3 px-4 font-medium text-gray-600 border-b">Paid</th>
               <th className="text-right py-3 px-4 font-medium text-gray-600 border-b">Balance</th>
               <th className="text-center py-3 px-4 font-medium text-gray-600 border-b">Status</th>
-              <th className="text-center py-3 px-4 font-medium text-gray-600 border-b">Actions</th>
+              {/* <th className="text-center py-3 px-4 font-medium text-gray-600 border-b">Actions</th> */}
             </tr>
           </thead>
           <tbody>
@@ -95,7 +95,7 @@ export function TransactionHistoryTable({ transactions, type = "customer" }) {
                   {formatCurrency(transaction.outstandingBalance, "NGN")}
                 </td>
                 <td className="py-3 px-4 border-b text-center">{getPaymentStatusBadge(transaction.paymentStatus)}</td>
-                <td className="py-3 px-4 border-b">
+                {/* <td className="py-3 px-4 border-b">
                   <div className="flex items-center justify-center space-x-1">
                     <Button
                       variant="ghost"
@@ -114,7 +114,7 @@ export function TransactionHistoryTable({ transactions, type = "customer" }) {
                       <Edit className="h-3 w-3" />
                     </Button>
                   </div>
-                </td>
+                </td> */}
               </tr>
             ))}
           </tbody>
