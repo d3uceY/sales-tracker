@@ -12,6 +12,7 @@ import { TransactionHistoryTable } from "../../components/contact/transaction-hi
 import { Plus, Search, Edit, Trash2, Building2, UserCheck, UserX, ChevronDown, ChevronRight } from "lucide-react"
 import Spinner from "@/components/ui/spinner"
 import PermissionRestricted from "@/components/permission-restricted"
+import { getVendors, getVendorTransactions } from "@/helpers/api/vendors"
 
 export default function VendorData() {
   const [vendors, setVendors] = useState([])
@@ -28,135 +29,92 @@ export default function VendorData() {
   const [error, setError] = useState("")
   const [stats, setStats] = useState({ totalVendors: 0, activeVendors: 0, inactiveVendors: 0 })
 
-  // Mock data for development - replace with actual API calls
-  const mockVendors = [
-    {
-      id: 1,
-      name: "Tech Solutions Inc",
-      contactPerson: "Michael Johnson",
-      email: "contact@techsolutions.com",
-      phone: "+1-555-0200",
-      status: "active",
-      address: "789 Business Ave",
-      city: "San Francisco",
-      state: "CA",
-      country: "USA",
-      postalCode: "94105",
-      taxId: "TAX987654",
-      registrationNumber: "REG456789",
-      website: "https://techsolutions.com",
-      bankName: "Chase Bank",
-      bankAccountNumber: "1234567890",
-      bankAccountName: "Tech Solutions Inc",
-      bankBranch: "Downtown SF",
-      swiftCode: "CHASUS33",
-      iban: "US12CHAS0000001234567890",
-      notes: "Preferred vendor for IT services",
-      createdAt: "2024-01-10T08:00:00Z",
-      transactions: [
-        {
-          id: 1,
-          transactionDate: "2024-01-25T10:00:00Z",
-          referenceNumber: "VTX-001",
-          itemPurchased: "Software License",
-          quantity: 5,
-          priceUSD: 500,
-          exchangeRate: 1500,
-          priceNGN: 750000,
-          otherExpensesUSD: 25,
-          otherExpensesNGN: 37500,
-          totalUSD: 2525,
-          totalNGN: 3787500,
-          amountPaid: 3787500,
-          outstandingBalance: 0,
-          paymentStatus: "paid",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Global Supplies Ltd",
-      contactPerson: "Sarah Williams",
-      email: "orders@globalsupplies.com",
-      phone: "+1-555-0201",
-      status: "active",
-      address: "456 Industrial Blvd",
-      city: "Chicago",
-      state: "IL",
-      country: "USA",
-      postalCode: "60601",
-      taxId: "TAX123789",
-      registrationNumber: "REG987123",
-      website: "https://globalsupplies.com",
-      bankName: "Bank of America",
-      bankAccountNumber: "9876543210",
-      bankAccountName: "Global Supplies Ltd",
-      bankBranch: "Chicago Main",
-      swiftCode: "BOFAUS3N",
-      iban: "US89BOFA0000009876543210",
-      notes: "Reliable supplier for office materials",
-      createdAt: "2024-01-05T14:30:00Z",
-      transactions: [],
-    },
-  ]
-
-  // Fetch vendors from API (mock implementation)
+  // Fetch vendors from API
   const fetchVendors = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const response = await getVendors({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        status: statusFilter === 'all' ? undefined : statusFilter
+      })
 
-      let filteredVendors = mockVendors
-
-      if (searchTerm) {
-        filteredVendors = filteredVendors.filter(
-          (vendor) =>
-            vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vendor.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vendor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            vendor.phone.includes(searchTerm),
-        )
-      }
-
-      if (statusFilter !== "all") {
-        filteredVendors = filteredVendors.filter((vendor) => vendor.status === statusFilter)
-      }
-
-      setVendors(filteredVendors)
-      setTotalPages(Math.ceil(filteredVendors.length / itemsPerPage))
-    } catch (err) {
-      setError("Failed to load vendors.")
-    } finally {
-      setLoading(false)
-    }
-  }, [searchTerm, statusFilter, currentPage, itemsPerPage])
-
-  // Fetch stats (mock implementation)
-  const fetchStats = useCallback(async () => {
-    try {
-      const totalVendors = mockVendors.length
-      const activeVendors = mockVendors.filter((v) => v.status === "active").length
-      const inactiveVendors = mockVendors.filter((v) => v.status === "inactive").length
-
+      setVendors(response.data)
+      setTotalPages(response.pagination?.pages || 1)
+      
+      // Update stats
+      const totalVendors = response.pagination?.total || 0
+      const activeVendors = response.data?.filter(v => v.status === 'active').length || 0
+      const inactiveVendors = totalVendors - activeVendors
+      
       setStats({
         totalVendors,
         activeVendors,
         inactiveVendors,
       })
-    } catch {
-      // ignore stats error
+    } catch (err) {
+      setError("Failed to load vendors.")
+      console.error("Error fetching vendors:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [searchTerm, statusFilter, currentPage, itemsPerPage])
+
+  // Fetch transactions for a vendor
+  const fetchVendorTransactions = useCallback(async (vendorId) => {
+    try {
+      const response = await getVendorTransactions(vendorId, {
+        page: 1,
+        limit: 10
+      })
+      
+      // Update the vendor with transactions from the response
+      setVendors(prevVendors => 
+        prevVendors.map(vendor => 
+          vendor.id === vendorId 
+            ? { 
+                ...vendor, 
+                transactions: response.data?.transactions || [] 
+              } 
+            : vendor
+        )
+      )
+    } catch (err) {
+      console.error("Error fetching transactions:", err)
+      // Set empty transactions array if there's an error
+      setVendors(prevVendors => 
+        prevVendors.map(vendor => 
+          vendor.id === vendorId 
+            ? { ...vendor, transactions: [] } 
+            : vendor
+        )
+      )
     }
   }, [])
+
+  // Toggle row expansion and fetch transactions if needed
+  const toggleRowExpansion = useCallback(async (vendorId) => {
+    const isExpanded = !expandedRows[vendorId]
+    
+    // If expanding and transactions aren't loaded yet, fetch them
+    if (isExpanded) {
+      const vendor = vendors.find(v => v.id === vendorId)
+      if (vendor && (!vendor.transactions || vendor.transactions.length === 0)) {
+        await fetchVendorTransactions(vendorId)
+      }
+    }
+    
+    setExpandedRows(prev => ({
+      ...prev,
+      [vendorId]: isExpanded,
+    }))
+  }, [vendors, expandedRows, fetchVendorTransactions])
 
   useEffect(() => {
     fetchVendors()
   }, [fetchVendors])
-
-  useEffect(() => {
-    fetchStats()
-  }, [fetchStats])
 
   const handleAddVendor = () => {
     setSelectedVendor(null)
@@ -187,7 +145,6 @@ export default function VendorData() {
       }
       setIsVendorModalOpen(false)
       fetchVendors()
-      fetchStats()
     } catch (err) {
       setError("Failed to save vendor.")
       toast.error("Failed to save vendor")
@@ -207,20 +164,12 @@ export default function VendorData() {
       setIsDeleteModalOpen(false)
       setSelectedVendor(null)
       fetchVendors()
-      fetchStats()
     } catch (err) {
       setError("Failed to delete vendor.")
       toast.error("Failed to delete vendor")
     } finally {
       setLoading(false)
     }
-  }
-
-  const toggleRowExpansion = (vendorId) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [vendorId]: !prev[vendorId],
-    }))
   }
 
   return (
@@ -351,26 +300,26 @@ export default function VendorData() {
                           <td className="py-4 px-4">
                             <div className="flex items-center space-x-3">
                               <div className="h-8 w-8 bg-purple-600 rounded-full flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">
+                                <span className="text-white text-xs font-medium">
                                   {vendor.name
                                     .split(" ")
-                                    .map((n) => n[0])
+                                    .map(n => n[0])
                                     .join("")}
                                 </span>
                               </div>
                               <div className="font-medium text-gray-900">{vendor.name}</div>
                             </div>
                           </td>
-                          <td className="py-4 px-4 text-gray-600">{vendor.contactPerson}</td>
-                          <td className="py-4 px-4 text-gray-600">{vendor.email}</td>
-                          <td className="py-4 px-4 text-gray-600">{vendor.phone}</td>
+                          <td className="py-4 px-4 text-gray-600">{vendor.contactPerson || '-'}</td>
+                          <td className="py-4 px-4 text-gray-600">{vendor.email || '-'}</td>
+                          <td className="py-4 px-4 text-gray-600">{vendor.phone || '-'}</td>
                           <td className="py-4 px-4 text-center">
                             <Badge
                               className={
                                 vendor.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                               }
                             >
-                              {vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}
+                              {vendor.status ? vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1) : 'Inactive'}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">
@@ -397,7 +346,11 @@ export default function VendorData() {
                         {expandedRows[vendor.id] && (
                           <tr>
                             <td colSpan="7" className="py-4 px-4 bg-gray-50">
-                              <TransactionHistoryTable transactions={vendor.transactions || []} type="vendor" />
+                              <TransactionHistoryTable 
+                                transactions={Array.isArray(vendor.transactions) ? vendor.transactions : []} 
+                                type="vendor"
+                                loading={loading && vendor.transactions === undefined}
+                              />
                             </td>
                           </tr>
                         )}

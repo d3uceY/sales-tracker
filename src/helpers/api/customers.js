@@ -3,20 +3,20 @@ import { authAxios } from "./auth";
 const apiUrl = import.meta.env.VITE_API_URL;
 
 // List customers with search, filter, and pagination
-export const getCustomers = async (params) => {
+export const getCustomers = async (params = {}) => {
   const response = await authAxios.get(`/customers`, { params });
+  return response.data;
+};
+
+// Get customer details with transactions
+export const getCustomer = async (id) => {
+  const response = await authAxios.get(`/customers/${id}`);
   return response.data;
 };
 
 // Create a new customer
 export const createCustomer = async (customerData) => {
   const response = await authAxios.post(`/customers`, customerData);
-  return response.data;
-};
-
-// Get customer details with balance and transactions
-export const getCustomer = async (id) => {
-  const response = await authAxios.get(`/customers/${id}`);
   return response.data;
 };
 
@@ -33,8 +33,8 @@ export const deleteCustomer = async (id) => {
 };
 
 // List transactions for a customer (with filters, pagination)
-export const getCustomerTransactions = async (customerId, params) => {
-  const response = await authAxios.get(`/customers/${customerId}/transactions`, { params });
+export const getCustomerTransactions = async (customerId, params = {}) => {
+  const response = await authAxios.get(`/customers/transactions/by-identifier?identifier=${customerId}`, { params });
   return response.data;
 };
 
@@ -50,4 +50,4 @@ export const getCustomerBalanceByName = async (customerName) => {
     params: { name: customerName }
   });
   return response.data;
-}; 
+};

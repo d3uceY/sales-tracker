@@ -12,6 +12,7 @@ import { TransactionHistoryTable } from "../../components/contact/transaction-hi
 import { Plus, Search, Edit, Trash2, Users2, UserCheck, UserX, ChevronDown, ChevronRight } from "lucide-react"
 import Spinner from "@/components/ui/spinner"
 import PermissionRestricted from "@/components/permission-restricted"
+import { getCustomers, getCustomerTransactions } from "@/helpers/api/customers"
 
 export default function CustomerData() {
   const [customers, setCustomers] = useState([])
@@ -28,120 +29,92 @@ export default function CustomerData() {
   const [error, setError] = useState("")
   const [stats, setStats] = useState({ totalCustomers: 0, activeCustomers: 0, inactiveCustomers: 0 })
 
-  // Mock data for development - replace with actual API calls
-  const mockCustomers = [
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john.smith@example.com",
-      phone: "+1-555-0123",
-      status: "active",
-      address: "123 Main St",
-      city: "New York",
-      state: "NY",
-      country: "USA",
-      postalCode: "10001",
-      taxId: "TAX123456",
-      registrationNumber: "REG789012",
-      website: "https://johnsmith.com",
-      notes: "VIP customer",
-      createdAt: "2024-01-15T10:30:00Z",
-      transactions: [
-        {
-          id: 1,
-          transactionDate: "2024-01-20T14:30:00Z",
-          referenceNumber: "TXN-001",
-          itemPurchased: "Product A",
-          quantity: 2,
-          priceUSD: 100,
-          exchangeRate: 1500,
-          priceNGN: 150000,
-          otherExpensesUSD: 10,
-          otherExpensesNGN: 15000,
-          totalUSD: 220,
-          totalNGN: 330000,
-          amountPaid: 200000,
-          outstandingBalance: 130000,
-          paymentStatus: "partial",
-        },
-      ],
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah.johnson@example.com",
-      phone: "+1-555-0124",
-      status: "active",
-      address: "456 Oak Ave",
-      city: "Los Angeles",
-      state: "CA",
-      country: "USA",
-      postalCode: "90210",
-      taxId: "TAX654321",
-      registrationNumber: "REG210987",
-      website: "https://sarahjohnson.com",
-      notes: "Regular customer",
-      createdAt: "2024-01-10T09:15:00Z",
-      transactions: [],
-    },
-  ]
-
-  // Fetch customers from API (mock implementation)
+  // Fetch customers from API
   const fetchCustomers = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const response = await getCustomers({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        status: statusFilter === 'all' ? undefined : statusFilter
+      })
 
-      let filteredCustomers = mockCustomers
-
-      if (searchTerm) {
-        filteredCustomers = filteredCustomers.filter(
-          (customer) =>
-            customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            customer.phone.includes(searchTerm),
-        )
-      }
-
-      if (statusFilter !== "all") {
-        filteredCustomers = filteredCustomers.filter((customer) => customer.status === statusFilter)
-      }
-
-      setCustomers(filteredCustomers)
-      setTotalPages(Math.ceil(filteredCustomers.length / itemsPerPage))
-    } catch (err) {
-      setError("Failed to load customers.")
-    } finally {
-      setLoading(false)
-    }
-  }, [searchTerm, statusFilter, currentPage, itemsPerPage])
-
-  // Fetch stats (mock implementation)
-  const fetchStats = useCallback(async () => {
-    try {
-      const totalCustomers = mockCustomers.length
-      const activeCustomers = mockCustomers.filter((c) => c.status === "active").length
-      const inactiveCustomers = mockCustomers.filter((c) => c.status === "inactive").length
-
+      setCustomers(response.data)
+      setTotalPages(response.pagination?.pages || 1)
+      
+      // Update stats
+      const totalCustomers = response.pagination?.total || 0
+      const activeCustomers = response.data?.filter(c => c.status === 'active').length || 0
+      const inactiveCustomers = totalCustomers - activeCustomers
+      
       setStats({
         totalCustomers,
         activeCustomers,
         inactiveCustomers,
       })
-    } catch {
-      // ignore stats error
+    } catch (err) {
+      setError("Failed to load customers.")
+      console.error("Error fetching customers:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [searchTerm, statusFilter, currentPage, itemsPerPage])
+
+  // Fetch transactions for a customer
+  const fetchCustomerTransactions = useCallback(async (customerId) => {
+    try {
+      const response = await getCustomerTransactions(customerId, {
+        page: 1,
+        limit: 10
+      })
+      
+      // Update the customer with transactions from the response
+      setCustomers(prevCustomers => 
+        prevCustomers.map(customer => 
+          customer.id === customerId 
+            ? { 
+                ...customer, 
+                transactions: response.data?.transactions || [] 
+              } 
+            : customer
+        )
+      )
+    } catch (err) {
+      console.error("Error fetching transactions:", err)
+      // Set empty transactions array if there's an error
+      setCustomers(prevCustomers => 
+        prevCustomers.map(customer => 
+          customer.id === customerId 
+            ? { ...customer, transactions: [] } 
+            : customer
+        )
+      )
     }
   }, [])
+
+  // Toggle row expansion and fetch transactions if needed
+  const toggleRowExpansion = useCallback(async (customerId) => {
+    const isExpanded = !expandedRows[customerId]
+    
+    // If expanding and transactions aren't loaded yet, fetch them
+    if (isExpanded) {
+      const customer = customers.find(c => c.id === customerId)
+      if (customer && (!customer.transactions || customer.transactions.length === 0)) {
+        await fetchCustomerTransactions(customerId)
+      }
+    }
+    
+    setExpandedRows(prev => ({
+      ...prev,
+      [customerId]: isExpanded,
+    }))
+  }, [customers, expandedRows, fetchCustomerTransactions])
 
   useEffect(() => {
     fetchCustomers()
   }, [fetchCustomers])
-
-  useEffect(() => {
-    fetchStats()
-  }, [fetchStats])
 
   const handleAddCustomer = () => {
     setSelectedCustomer(null)
@@ -172,7 +145,6 @@ export default function CustomerData() {
       }
       setIsCustomerModalOpen(false)
       fetchCustomers()
-      fetchStats()
     } catch (err) {
       setError("Failed to save customer.")
       toast.error("Failed to save customer")
@@ -192,20 +164,12 @@ export default function CustomerData() {
       setIsDeleteModalOpen(false)
       setSelectedCustomer(null)
       fetchCustomers()
-      fetchStats()
     } catch (err) {
       setError("Failed to delete customer.")
       toast.error("Failed to delete customer")
     } finally {
       setLoading(false)
     }
-  }
-
-  const toggleRowExpansion = (customerId) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [customerId]: !prev[customerId],
-    }))
   }
 
   return (
@@ -335,25 +299,25 @@ export default function CustomerData() {
                           <td className="py-4 px-4">
                             <div className="flex items-center space-x-3">
                               <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">
+                                <span className="text-white text-xs font-medium">
                                   {customer.name
                                     .split(" ")
-                                    .map((n) => n[0])
+                                    .map(n => n[0])
                                     .join("")}
                                 </span>
                               </div>
                               <div className="font-medium text-gray-900">{customer.name}</div>
                             </div>
                           </td>
-                          <td className="py-4 px-4 text-gray-600">{customer.email}</td>
-                          <td className="py-4 px-4 text-gray-600">{customer.phone}</td>
+                          <td className="py-4 px-4 text-gray-600">{customer.email || '-'}</td>
+                          <td className="py-4 px-4 text-gray-600">{customer.phone || '-'}</td>
                           <td className="py-4 px-4 text-center">
                             <Badge
                               className={
                                 customer.status === "active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                               }
                             >
-                              {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
+                              {customer.status ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1) : 'Inactive'}
                             </Badge>
                           </td>
                           <td className="py-4 px-4">
@@ -380,7 +344,11 @@ export default function CustomerData() {
                         {expandedRows[customer.id] && (
                           <tr>
                             <td colSpan="6" className="py-4 px-4 bg-gray-50">
-                              <TransactionHistoryTable transactions={customer.transactions || []} type="customer" />
+                              <TransactionHistoryTable 
+                                transactions={Array.isArray(customer.transactions) ? customer.transactions : []} 
+                                type="customer" 
+                                loading={loading && customer.transactions === undefined}
+                              />
                             </td>
                           </tr>
                         )}
