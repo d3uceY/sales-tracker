@@ -24,9 +24,9 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
     customItemName: "",
     transactionDate: "",
     quantity: "",
-    priceNGN: "",
-    exchangeRate: "",
     priceUSD: "",
+    exchangeRate: "",
+    priceNGN: "",
     otherExpensesUSD: "0",
     otherExpensesNGN: "0",
     paymentStatus: "unpaid",
@@ -39,6 +39,21 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
   const [loadingCategories, setLoadingCategories] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [apiError, setApiError] = useState("")
+
+  // Helper function to safely format money
+  const safeFormatMoney = (value, decimals = 2) => {
+    if (value === "" || value === null || value === undefined) return ""
+    const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : parseFloat(value)
+    return isNaN(numValue) ? "" : formatMoney(numValue, decimals)
+  }
+
+  // Helper function to safely parse numeric value from string
+  const safeParseFloat = (value) => {
+    if (value === "" || value === null || value === undefined) return 0
+    const stringValue = typeof value === 'string' ? value : String(value)
+    const parsed = parseFloat(stringValue.replace(/,/g, ''))
+    return isNaN(parsed) ? 0 : parsed
+  }
 
   // Fetch vendors and categories on open
   useEffect(() => {
@@ -72,10 +87,10 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
         itemPurchased: transaction.itemPurchased === "Other" ? "Other" : transaction.itemPurchased,
         customItemName: transaction.itemPurchased === "Other" ? "" : transaction.itemPurchased,
         transactionDate: transaction.transactionDate,
-        quantity: transaction.quantity.toString(),
-        priceNGN: transaction.priceNGN ? transaction.priceNGN.toString() : "",
-        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : (exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toString() : "1500"),
+        quantity: transaction.quantity ? transaction.quantity.toString() : "",
         priceUSD: transaction.priceUSD ? transaction.priceUSD.toString() : "",
+        exchangeRate: transaction.exchangeRate ? transaction.exchangeRate.toString() : (exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toString() : "1500"),
+        priceNGN: transaction.priceNGN ? transaction.priceNGN.toString() : "",
         otherExpensesUSD: transaction.otherExpensesUSD ? transaction.otherExpensesUSD.toString() : "0",
         otherExpensesNGN: transaction.otherExpensesNGN ? transaction.otherExpensesNGN.toString() : "0",
         paymentStatus: transaction.paymentStatus,
@@ -89,9 +104,9 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
         customItemName: "",
         transactionDate: new Date().toISOString().split("T")[0],
         quantity: "",
-        priceNGN: "",
-        exchangeRate: exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toString() : "1500",
         priceUSD: "",
+        exchangeRate: exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toString() : "1500",
+        priceNGN: "",
         otherExpensesUSD: "0",
         otherExpensesNGN: "0",
         paymentStatus: "unpaid",
@@ -99,31 +114,31 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
       })
     }
     setErrors({})
-  }, [transaction, isOpen, exchangeRatesData && exchangeRatesData.buyRate])
+  }, [transaction, isOpen, exchangeRatesData])
 
-  // Auto-calculate priceUSD when priceNGN and exchangeRate change
+  // Auto-calculate priceNGN when priceUSD and exchangeRate change
   useEffect(() => {
-    if (formData.priceNGN && formData.exchangeRate) {
-      const ngn = parseFloat(formData.priceNGN.replace(/,/g, '')) || 0;
-      const rate = parseFloat(formData.exchangeRate.replace(/,/g, '')) || 1;
-      const usd = ngn / rate;
-      setFormData((prev) => ({ ...prev, priceUSD: usd ? usd.toFixed(2) : "" }));
+    if (formData.priceUSD && formData.exchangeRate) {
+      const usd = safeParseFloat(formData.priceUSD)
+      const rate = safeParseFloat(formData.exchangeRate)
+      const ngn = usd * rate
+      setFormData((prev) => ({ ...prev, priceNGN: ngn > 0 ? ngn.toString() : "" }))
     }
-  }, [formData.priceNGN, formData.exchangeRate]);
+  }, [formData.priceUSD, formData.exchangeRate])
 
   // Auto-calculate otherExpensesNGN when otherExpensesUSD and exchangeRate change
   useEffect(() => {
     if (formData.otherExpensesUSD && formData.exchangeRate) {
-      const usd = parseFloat(formData.otherExpensesUSD.replace(/,/g, '')) || 0;
-      const rate = parseFloat(formData.exchangeRate.replace(/,/g, '')) || 1;
-      const ngn = usd * rate;
-      setFormData((prev) => ({ ...prev, otherExpensesNGN: ngn ? ngn.toFixed(2) : "0" }));
+      const usd = safeParseFloat(formData.otherExpensesUSD)
+      const rate = safeParseFloat(formData.exchangeRate)
+      const ngn = usd * rate
+      setFormData((prev) => ({ ...prev, otherExpensesNGN: ngn > 0 ? ngn.toString() : "0" }))
     }
-  }, [formData.otherExpensesUSD, formData.exchangeRate]);
+  }, [formData.otherExpensesUSD, formData.exchangeRate])
 
   // Calculate totals based on new structure
-  const totalNGN = (Number.parseFloat(formData.priceNGN?.replace(/,/g, '') || 0)) + (Number.parseFloat(formData.otherExpensesNGN?.replace(/,/g, '') || 0));
-  const totalUSD = (Number.parseFloat(formData.priceUSD?.replace(/,/g, '') || 0)) + (Number.parseFloat(formData.otherExpensesUSD?.replace(/,/g, '') || 0));
+  const totalNGN = safeParseFloat(formData.priceNGN) + safeParseFloat(formData.otherExpensesNGN)
+  const totalUSD = safeParseFloat(formData.priceUSD) + safeParseFloat(formData.otherExpensesUSD)
 
   const validateForm = () => {
     const newErrors = {}
@@ -134,11 +149,11 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
     if (!finalVendorName.trim()) newErrors.vendorName = "Vendor name is required"
     if (!finalItemName.trim()) newErrors.itemPurchased = "Item type is required"
     if (!formData.transactionDate) newErrors.transactionDate = "Transaction date is required"
-    if (!formData.quantity || Number.parseFloat(formData.quantity) <= 0)
+    if (!formData.quantity || safeParseFloat(formData.quantity) <= 0)
       newErrors.quantity = "Valid quantity is required"
-    if (!formData.priceNGN || Number.parseFloat(formData.priceNGN) <= 0)
-      newErrors.priceNGN = "Valid price in NGN is required"
-    if (!formData.exchangeRate || Number.parseFloat(formData.exchangeRate) <= 0)
+    if (!formData.priceUSD || safeParseFloat(formData.priceUSD) <= 0)
+      newErrors.priceUSD = "Valid price in USD is required"
+    if (!formData.exchangeRate || safeParseFloat(formData.exchangeRate) <= 0)
       newErrors.exchangeRate = "Valid exchange rate is required"
 
     setErrors(newErrors)
@@ -178,7 +193,7 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
         }
       }
       // Update exchange rate if it's different from the default buy rate
-      const newExchangeRate = Number.parseFloat(formData.exchangeRate)
+      const newExchangeRate = safeParseFloat(formData.exchangeRate)
       if (newExchangeRate !== exchangeRatesData.buyRate) {
         try {
           await updateExchangeRate({
@@ -193,16 +208,16 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
           console.error('Error updating exchange rate:', error)
         }
       }
-      const amountPaidValue = Number.parseFloat(formData.amountPaid) || totalUSD;
+      const amountPaidValue = safeParseFloat(formData.amountPaid) || totalUSD
       const transactionData = {
         itemPurchased: finalItemName,
         transactionDate: formData.transactionDate,
-        quantity: Number.parseFloat(formData.quantity),
-        priceNGN: Number.parseFloat(formData.priceNGN),
-        exchangeRate: Number.parseFloat(formData.exchangeRate),
-        priceUSD: Number.parseFloat(formData.priceUSD),
-        otherExpensesUSD: Number.parseFloat(formData.otherExpensesUSD) || 0,
-        otherExpensesNGN: Number.parseFloat(formData.otherExpensesNGN) || 0,
+        quantity: safeParseFloat(formData.quantity),
+        priceUSD: safeParseFloat(formData.priceUSD),
+        exchangeRate: safeParseFloat(formData.exchangeRate),
+        priceNGN: safeParseFloat(formData.priceNGN),
+        otherExpensesUSD: safeParseFloat(formData.otherExpensesUSD),
+        otherExpensesNGN: safeParseFloat(formData.otherExpensesNGN),
         paymentStatus: formData.paymentStatus,
         totalNGN: totalNGN,
         totalUSD: totalUSD,
@@ -218,44 +233,37 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
   }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     
-    // Format money fields with commas as user types
-    if (['priceNGN', 'exchangeRate', 'priceUSD', 'otherExpensesUSD', 'otherExpensesNGN', 'amountPaid'].includes(name)) {
-      const numericValue = value.replace(/[^0-9.]/g, ''); // Remove non-numeric characters except decimal point
-      const parts = numericValue.split('.');
-      
-      // Only allow numbers with up to 2 decimal places
-      if (parts.length > 1 && parts[1].length > 2) {
-        return; // Don't update if more than 2 decimal places
+    // For money fields, allow raw input but validate format
+    if (['priceUSD', 'priceNGN', 'exchangeRate', 'otherExpensesUSD', 'otherExpensesNGN', 'amountPaid'].includes(name)) {
+      // Allow empty string, numbers, and one decimal point
+      if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+        setFormData((prev) => ({ ...prev, [name]: value }))
+        
+        // Clear any previous errors for this field
+        if (errors[name]) {
+          setErrors(prev => ({ ...prev, [name]: '' }))
+        }
       }
-      
-      // Update the form data with the raw numeric value
-      setFormData((prev) => ({ ...prev, [name]: numericValue }));
-      
-      // Clear any previous errors for this field
-      if (errors[name]) {
-        setErrors(prev => ({ ...prev, [name]: '' }));
-      }
-      
-      return;
+      return
     }
     
     // For non-money fields, update normally
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }))
     
     // Clear any previous errors for this field
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors(prev => ({ ...prev, [name]: '' }))
     }
-  };
+  }
   
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }))
     }
-  };
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -361,30 +369,21 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
             </div>
 
             <div>
-              <Label htmlFor="priceNGN" className="text-sm font-medium text-gray-700">
-                Price (NGN) *
+              <Label htmlFor="priceUSD" className="text-sm font-medium text-gray-700">
+                Price (USD) *
               </Label>
               <div className="relative">
                 <Input
-                  id="priceNGN"
-                  name="priceNGN"
-                  value={formatMoney(formData.priceNGN || 0, 2)}
+                  id="priceUSD"
+                  name="priceUSD"
+                  value={formData.priceUSD || ""}
                   onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const num = parseFloat(e.target.value.replace(/,/g, ''));
-                    if (!isNaN(num)) {
-                      setFormData(prev => ({
-                        ...prev,
-                        priceNGN: num
-                      }));
-                    }
-                  }}
                   placeholder="0.00"
-                  className={`pr-8 ${errors.priceNGN ? "border-red-500" : ""}`}
+                  className={`pr-8 ${errors.priceUSD ? "border-red-500" : ""}`}
                 />
-                <span className="absolute right-2 top-2 text-gray-500">₦</span>
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
               </div>
-              {errors.priceNGN && <p className="mt-1 text-sm text-red-600">{errors.priceNGN}</p>}
+              {errors.priceUSD && <p className="mt-1 text-sm text-red-600">{errors.priceUSD}</p>}
             </div>
 
             <div>
@@ -395,17 +394,8 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
                 <Input
                   id="exchangeRate"
                   name="exchangeRate"
-                  value={formatMoney(formData.exchangeRate || 0, 2)}
+                  value={formData.exchangeRate || ""}
                   onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const num = parseFloat(e.target.value.replace(/,/g, ''));
-                    if (!isNaN(num)) {
-                      setFormData(prev => ({
-                        ...prev,
-                        exchangeRate: num
-                      }));
-                    }
-                  }}
                   placeholder="1500"
                   className={errors.exchangeRate ? "border-red-500" : ""}
                 />
@@ -418,21 +408,21 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
             </div>
 
             <div>
-              <Label htmlFor="priceUSD" className="text-sm font-medium text-gray-700">
-                Price (USD)
+              <Label htmlFor="priceNGN" className="text-sm font-medium text-gray-700">
+                Price (NGN)
               </Label>
               <div className="relative">
                 <Input
-                  id="priceUSD"
-                  name="priceUSD"
-                  value={formatMoney(formData.priceUSD || 0, 2)}
+                  id="priceNGN"
+                  name="priceNGN"
+                  value={safeFormatMoney(formData.priceNGN, 2)}
                   readOnly
                   placeholder="0.00"
                   className="bg-gray-100 pr-8"
                 />
-                <span className="absolute right-2 top-2 text-gray-500">$</span>
+                <span className="absolute right-2 top-2 text-gray-500">₦</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Auto-calculated from NGN price</p>
+              <p className="text-xs text-gray-500 mt-1">Auto-calculated from USD price</p>
             </div>
 
             <div>
@@ -443,17 +433,8 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
                 <Input
                   id="amountPaid"
                   name="amountPaid"
-                  value={formatMoney(formData.amountPaid || 0, 2)}
+                  value={formData.amountPaid || ""}
                   onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const num = parseFloat(e.target.value.replace(/,/g, ''));
-                    if (!isNaN(num)) {
-                      setFormData(prev => ({
-                        ...prev,
-                        amountPaid: Math.min(num, totalUSD)
-                      }));
-                    }
-                  }}
                   placeholder="0.00"
                   className="pr-8"
                 />
@@ -470,17 +451,8 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
                 <Input
                   id="otherExpensesUSD"
                   name="otherExpensesUSD"
-                  value={formatMoney(formData.otherExpensesUSD || 0, 2)}
+                  value={formData.otherExpensesUSD || ""}
                   onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const num = parseFloat(e.target.value.replace(/,/g, ''));
-                    if (!isNaN(num)) {
-                      setFormData(prev => ({
-                        ...prev,
-                        otherExpensesUSD: num
-                      }));
-                    }
-                  }}
                   placeholder="0.00"
                   className="pr-8"
                 />
@@ -496,51 +468,43 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
                 <Input
                   id="otherExpensesNGN"
                   name="otherExpensesNGN"
-                  value={formatMoney(formData.otherExpensesNGN || 0, 2)}
-                  onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const num = parseFloat(e.target.value.replace(/,/g, ''));
-                    if (!isNaN(num)) {
-                      setFormData(prev => ({
-                        ...prev,
-                        otherExpensesNGN: num
-                      }));
-                    }
-                  }}
+                  value={safeFormatMoney(formData.otherExpensesNGN, 2)}
+                  readOnly
                   placeholder="0.00"
-                  className="pr-8"
+                  className="bg-gray-100 pr-8"
                 />
                 <span className="absolute right-2 top-2 text-gray-500">₦</span>
               </div>
+              <p className="text-xs text-gray-500 mt-1">Auto-calculated from USD expenses</p>
             </div>
 
             {/* Calculated Values */}
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-lg col-span-full">
               <h3 className="text-sm font-medium text-gray-700 mb-3">Calculated Values</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-600">Price (USD):</span>
-                  <p className="font-mono font-medium">${formatMoney(formData.priceUSD || 0, 2)}</p>
+                  <span className="text-gray-600">Price (NGN):</span>
+                  <p className="font-mono font-medium">₦{safeFormatMoney(formData.priceNGN, 2)}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">Total (NGN):</span>
-                  <p className="font-mono font-medium">₦{formatMoney(totalNGN, 2)}</p>
+                  <p className="font-mono font-medium">₦{safeFormatMoney(totalNGN, 2)}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">Total (USD):</span>
-                  <p className="font-mono font-medium">${formatMoney(totalUSD, 2)}</p>
+                  <p className="font-mono font-medium">${safeFormatMoney(totalUSD, 2)}</p>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={onClose} disabled={submitLoading}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={submitLoading}>
-                {submitLoading ? "Saving..." : transaction ? "Update Transaction" : "Create Transaction"}
-              </Button>
-            </div>
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitLoading}>
+              Cancel
+            </Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={submitLoading}>
+              {submitLoading ? "Saving..." : transaction ? "Update Transaction" : "Create Transaction"}
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -548,4 +512,4 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
   )
 }
 
-export default VendorTransactionModal;
+export default VendorTransactionModal
