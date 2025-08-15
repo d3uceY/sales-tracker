@@ -321,9 +321,19 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
   }
   
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    // If changing quantity and item is Dollar, update priceUSD as well
+    if (field === 'quantity' && formData.itemPurchased === 'Dollar') {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+        priceUSD: value // Set priceUSD to the same value as quantity for Dollar items
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
+    
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   }
 
@@ -435,7 +445,7 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
 
             <div>
               <Label htmlFor="quantity" className="text-sm font-medium text-gray-700">
-                Quantity *
+                {formData.itemPurchased === "Dollar" ? 'Amount (USD) *' : 'Quantity *'}
               </Label>
               <Input
                 id="quantity"
