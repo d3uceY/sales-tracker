@@ -498,27 +498,6 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
             </div>
 
             <div>
-              <Label htmlFor="exchangeRate" className="text-sm font-medium text-gray-700">
-                Exchange Rate (USD to NGN) *
-              </Label>
-              <div className="relative">
-                <Input
-                  id="exchangeRate"
-                  name="exchangeRate"
-                  value={formData.exchangeRate || ""}
-                  onChange={handleInputChange}
-                  placeholder="1500"
-                  className={errors.exchangeRate ? "border-red-500" : ""}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Default buy rate: ₦{exchangeRatesData && exchangeRatesData.buyRate != null ? exchangeRatesData.buyRate.toLocaleString() : "1,650"}. 
-                Changing this will update the default rate.
-              </p>
-              {errors.exchangeRate && <p className="mt-1 text-sm text-red-600">{errors.exchangeRate}</p>}
-            </div>
-
-            <div>
               <Label htmlFor="priceNGN" className="text-sm font-medium text-gray-700">
                 Price (NGN)
               </Label>
@@ -534,35 +513,6 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
                 <span className="absolute right-2 top-2 text-gray-500">₦</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Auto-calculated from USD price</p>
-            </div>
-
-            <div>
-              <Label htmlFor="paid" className="text-sm font-medium text-gray-700">
-                Paid (USD)
-              </Label>
-              <div className="relative">
-                <Input
-                  id="paid"
-                  name="paid"
-                  value={formData.paid || ""}
-                  onChange={handleInputChange}
-                  onBlur={(e) => {
-                    const num = parseMoney(e.target.value);
-                    setFormData(prev => ({
-                      ...prev,
-                      paid: isNaN(num) ? '' : num.toString()
-                    }));
-                  }}
-                  placeholder="0.00"
-                  className="pr-8"
-                />
-                <span className="absolute right-2 top-2 text-gray-500">$</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Enter the amount paid to vendor in USD</p>
-              {/* Total Paid Including Previous Balance */}
-              <div className="mt-1 text-xs text-blue-700">
-                Balance (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">${formatMoney((Number(formData.paid) || 0) + (Number(previousBalance) || 0), 2)}</span>
-              </div>
             </div>
 
             <div>
@@ -598,6 +548,64 @@ export const VendorTransactionModal = ({ isOpen, onClose, onSave, transaction })
                 <span className="absolute right-2 top-2 text-gray-500">₦</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Auto-calculated from USD expenses</p>
+            </div>
+
+            <div>
+              <Label htmlFor="exchangeRate" className="text-sm font-medium text-gray-700">
+                Exchange Rate (USD to NGN) *
+              </Label>
+              <div className="relative">
+                <Input
+                  id="exchangeRate"
+                  name="exchangeRate"
+                  type="text"
+                  value={formData.exchangeRate}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseMoney(e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      exchangeRate: isNaN(num) ? '' : num.toString()
+                    }));
+                  }}
+                  placeholder="1500"
+                  className={errors.exchangeRate ? "border-red-500" : ""}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Default sell rate: ₦{exchangeRatesData && exchangeRatesData.sellRate != null ? exchangeRatesData.sellRate.toLocaleString() : "1,655"}. 
+                Changing this will update the default rate.
+              </p>
+              {errors.exchangeRate && <p className="mt-1 text-sm text-red-600">{errors.exchangeRate}</p>}
+            </div>
+
+            <div>
+              <Label htmlFor="paid" className="text-sm font-medium text-gray-700">
+                Paid (USD)
+              </Label>
+              <div className="relative">
+                <Input
+                  id="paid"
+                  name="paid"
+                  value={formData.paid || ""}
+                  onChange={handleInputChange}
+                  onBlur={(e) => {
+                    const num = parseMoney(e.target.value);
+                    setFormData(prev => ({
+                      ...prev,
+                      paid: isNaN(num) ? '' : num.toString()
+                    }));
+                  }}
+                  placeholder="0.00"
+                  className="pr-8"
+                />
+                <span className="absolute right-2 top-2 text-gray-500">$</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Enter the amount paid to vendor in USD</p>
+              {/* Total Paid Including Previous Balance */}
+              <div className="mt-1 text-xs text-blue-700">
+                Balance (Including Previous Balance): <span className="font-mono font-semibold text-blue-900">${formatMoney((Number(formData.paid) || 0) + (Number(previousBalance) || 0), 2)}</span>
+              </div>
             </div>
 
             {/* Payment Status */}

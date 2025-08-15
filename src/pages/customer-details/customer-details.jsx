@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TransactionHistoryTable } from "../../components/contact/transaction-history-table"
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, User, Edit, Trash2 } from "lucide-react"
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, User, Edit, Trash2, CreditCard, DollarSign, Receipt } from "lucide-react"
 import { getCustomers, getCustomerTransactions } from "@/helpers/api/customers"
 import Spinner from "@/components/ui/spinner"
 
@@ -57,6 +57,22 @@ export default function CustomerDetails() {
       setTransactions([])
     }
   }
+
+  // Calculate account summary data
+  const getAccountSummary = () => {
+    const totalTransactions = transactions.length
+    const lastTransaction = transactions.length > 0 ? transactions[0] : null // Assuming transactions are sorted by date desc
+    const outstandingBalance = lastTransaction?.outstandingBalance || 0
+    const lastPaidAmount = lastTransaction?.paid || lastTransaction?.amountPaid || 0
+    
+    return {
+      totalTransactions,
+      outstandingBalance,
+      lastPaidAmount
+    }
+  }
+
+  const accountSummary = getAccountSummary()
 
   if (isLoading) {
     return (
@@ -126,6 +142,50 @@ export default function CustomerDetails() {
                 {customer.status ? customer.status.charAt(0).toUpperCase() + customer.status.slice(1) : "Inactive"}
               </Badge>
               <p className="text-gray-600 mt-3">Customer ID: {customer.id}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Account Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Account Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+              <div className="h-12 w-12 bg-blue-600 rounded-full flex items-center justify-center">
+                <Receipt className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Transactions</p>
+                <p className="text-2xl font-bold text-gray-900">{accountSummary.totalTransactions}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 p-4 bg-red-50 rounded-lg">
+              <div className="h-12 w-12 bg-red-600 rounded-full flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Outstanding Balance</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${accountSummary.outstandingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
+              <div className="h-12 w-12 bg-green-600 rounded-full flex items-center justify-center">
+                <DollarSign className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Last Paid Amount</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${accountSummary.lastPaidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>

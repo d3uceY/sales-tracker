@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { VendorModal } from "../../components/contact/vendor-modal"
 import { DeleteConfirmModal } from "../../components/admin/delete-confirm-modal"
 import { TransactionHistoryTable } from "../../components/contact/transaction-history-table"
-import { Search, Edit, Trash2, Building2, UserCheck, UserX, ChevronDown, ChevronRight, Eye } from "lucide-react"
+import { Search, Edit, Trash2, Building2, UserCheck, UserX, ChevronDown, ChevronRight, Eye, Plus } from "lucide-react"
 import Spinner from "@/components/ui/spinner"
 import PermissionRestricted from "@/components/permission-restricted"
 import { getVendors, getVendorTransactions, createVendor, updateVendor, deleteVendor } from "@/helpers/api/vendors"
@@ -206,6 +206,9 @@ export default function VendorData() {
             <h1 className="text-3xl font-bold text-gray-900">Vendor Management</h1>
             <p className="text-gray-600 mt-2">Manage vendor data and transaction history</p>
           </div>
+          <Button variant="default" onClick={handleAddVendor} className="h-8 w-8">
+            <Plus className="h-4 w-4" />
+          </Button>
           <VendorModal
             onSave={handleSaveVendor}
             onCancel={() => setIsVendorModalOpen(false)}
